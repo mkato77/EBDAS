@@ -1,0 +1,5 @@
+flet
+matplotlib
+numpy
+requests
+pyperclip
