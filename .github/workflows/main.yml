@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "Create Release"
-        run: gh release create ${{github.ref_name}} --draft --verify-tag -t "${{github.ref_name}}" --notes "##Changed\n\n##Fixed\n\n\nRelease ${{github.ref_name}}\n"
+        run: gh release create ${{github.ref_name}} --draft --verify-tag -t "${{github.ref_name}}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   cross-build:
