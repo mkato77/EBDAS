@@ -20,9 +20,9 @@ jobs:
     strategy:
       matrix:
         include:
-          # - runs-on: ubuntu-latest
-          #   flet-name: EBDAS_build_linux
-          #   binary-name: EBDAS_${{github.ref_name}}_build_linux.tar.gz
+          - runs-on: ubuntu-latest
+            flet-name: EBDAS_build_linux
+            binary-name: EBDAS_${{github.ref_name}}_build_linux.tar.gz
           #- runs-on: macos-latest
            # flet-name: EBDAS_${{github.ref_name}}_build_windows
             #binary-name: multi_assets_sim_macos.tar.gz
@@ -38,6 +38,11 @@ jobs:
         with:
           python-version: "3.11.7"
           cache: "pip"
+      - name: apt update & install (Ubuntu)
+        if: runner.os != 'Windows'
+        run: |
+          sudo apt-get update
+          sudo apt-get install ninja-build libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
       - name: Setup Flutter SDK
         uses: flutter-actions/setup-flutter@v2
         with:
