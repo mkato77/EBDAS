@@ -39,9 +39,12 @@ jobs:
           python-version: 3.11.7
           cache: "pip"
       - run: pip install -r requirements.txt
-      - name: "pack"
+      - name: "pack(Windows)"
         if: runner.os == 'Windows'
         run: flet pack main.py --add-data "assets;assets" --name "EBDAS"
+      - name: "pack(Linux/MacOS)"
+        if: runner.os != 'Windows'
+        run: flet pack main.py --add-data "assets:assets" --name "EBDAS"
       - name: "Linux/MacOS compress"
         if: runner.os != 'Windows'
         run: tar zcvf ${{matrix.binary-name}} dist
