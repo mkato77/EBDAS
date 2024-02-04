@@ -396,7 +396,7 @@ async def main(page: Page):
 
     # setuzokuStatusView=ft.SubmenuButton(
     #             content=ft.Image(
-    #                                     src=f"assets/connecting.gif",
+    #                                     src=f"connecting.gif",
     #                                     # width=100,
     #                                     height=40,
     #                                     fit=ft.ImageFit.FIT_HEIGHT,
@@ -665,7 +665,7 @@ async def main(page: Page):
                                 controls=[
                                     # Text("EBDAS"),
                                     ft.Image(
-                                        src=f"assets/ebdas.png",
+                                        src=f"ebdas.png",
                                         # width=100,
                                         height=50,
                                         fit=ft.ImageFit.FIT_HEIGHT,
@@ -1450,4 +1450,4 @@ async def main(page: Page):
     await page.add_async(t)
 
 
-ft.app(target=main)
+ft.app(target=main, assets_dir="assets")
