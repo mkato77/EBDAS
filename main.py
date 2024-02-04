@@ -569,7 +569,7 @@ async def main(page: Page):
         if recordStatus:
             await openSnackbar("記録中のため、リセットできません。")
             return()
-        global rawResponseData
+        global rawResponseData, recordRawData, recordDataStatus
         realtimeRecordTable.rows.clear()
         # table.rows.clear() kx
         time.clear()
@@ -595,11 +595,15 @@ async def main(page: Page):
             realtimeData[i].value="-"
             rtNowData[i].on_click=lambda e: pyperclip.copy("-")
         rawResponseData=""
+        recordRawData=""
         rawdata_tx.value=""
         rawRecorddata_tx.value=""
-
+        recordDeleteTitle.color=None
+        recordDeleteText.color=None
+        recordDeleteIcon.color=None
         recordStartTime=-1.0
         recordStatus=False
+        recordDataStatus=False
         baloonSelecter.value=None
         recordStartButton.disabled=True
         recordSaveButton.disabled=True
@@ -608,6 +612,7 @@ async def main(page: Page):
         await realtimeGraphSystem.reset()
         await close_resetAlert(e)
         # await table.update_async() kx
+        await rawRecorddata_tx.update_async()
         await table_column.update_async()
         await realtimeTable.update_async()
         await realtimeRecordTable.update_async()
@@ -1149,6 +1154,7 @@ async def main(page: Page):
         recordDeleteTitle.color=None
         recordDeleteText.color=None
         recordDeleteIcon.color=None
+        
         await recordDeleteTitle.update_async()
         await recordDeleteText.update_async()
         await recordDeleteIcon.update_async()
@@ -1203,8 +1209,8 @@ async def main(page: Page):
             recordStartButton.disabled=True
             recordSaveButton.disabled=False
             recordDeleteButton.disabled=False
-            recordDeleteTitle.color="orange"
-            recordDeleteText.color="orange"
+            recordDeleteTitle.color="red"
+            recordDeleteText.color="red"
             recordDeleteIcon.color="red"
         else:
             recordStartButton.disabled=False
@@ -1231,8 +1237,8 @@ async def main(page: Page):
         recordStartButton.on_click=recordStop
         recordStartTitle.value="記録ストップ"
         recordStartText.value="着陸時にクリック"
-        recordStartTitle.color="orange"
-        recordStartText.color="orange"
+        recordStartTitle.color="red"
+        recordStartText.color="red"
         recordStartIcon.name=ft.icons.STOP
         await recordStartTitle.update_async()
         await recordStartText.update_async()
