@@ -20,9 +20,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - runs-on: ubuntu-latest
-            flet-name: EBDAS_build_linux
-            binary-name: EBDAS_${{github.ref_name}}_build_linux.tar.gz
+          # - runs-on: ubuntu-latest
+          #   flet-name: EBDAS_build_linux
+          #   binary-name: EBDAS_${{github.ref_name}}_build_linux.tar.gz
           #- runs-on: macos-latest
            # flet-name: EBDAS_${{github.ref_name}}_build_windows
             #binary-name: multi_assets_sim_macos.tar.gz
