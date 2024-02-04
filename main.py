@@ -203,6 +203,8 @@ async def main(page: Page):
     global bannerContents
     bannerContents=ft.Text("")
 
+    global isRecordStop
+    isRecordStop=True
     
     global connectStatus
     connectStatus = False
@@ -269,8 +271,8 @@ async def main(page: Page):
         for i in range(0, 9):
             realtimeData[i].value=resList[i]
             # rtNowData[i].on_click=lambda e: pyperclip.copy(resList[i])
-        global recordStartTime, recordStatus, recordDataStatus, recordRawData, recordDateTime, recordBaloonName
-        if recordStatus:
+        global recordStartTime, recordStatus, recordDataStatus, recordRawData, recordDateTime, recordBaloonName, isRecordStop
+        if isRecordStop==False:
             if recordStartTime==-1.0:
                 recordStartTime=resListFloat[0]
                 recordRawData+="time[sec], temperature[degC], pressure[hPa], humidity[%], altitude[m], a0, a1, a2, a3\n"
@@ -328,8 +330,8 @@ async def main(page: Page):
         a3.append(resListFloat[8])
         await realtimeGraphSystem.set(time=time[-100:], temp=temp[-100:], pressure=pressure[-100:], humidity=humidity[-100:], altitude=altitude[-100:], a0=a0[-100:], a1=a1[-100:], a2=a2[-100:], a3=a3[-100:])
 
-        if recordStatus:
-            await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
+        # if recordStatus:
+        #     await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
 
         await page.update_async()
         
@@ -412,11 +414,22 @@ async def main(page: Page):
             return()
         await close_banner(e)
         global connectStatus
+        global recordStatus, isRecordStop
         connectStatus=True
         setuzokuStartButton.text="接続中..."
         setuzokusaki.disabled=True
         setuzokuStartButton.disabled=True
         setuzokuStopButton.disabled=False
+        time.clear()
+        temp.clear()
+        pressure.clear()
+        humidity.clear()
+        altitude.clear()
+        a0.clear()
+        a1.clear()
+        a2.clear()
+        a3.clear()
+        await realtimeGraphSystem.reset()
         await setuzokuStartButton.update_async()
         await setuzokusaki.update_async()
         await page.update_async()
@@ -432,10 +445,13 @@ async def main(page: Page):
 
                     # await setuzokuStatusView.update_async()
                     break
+                if recordStatus==False:
+                    isRecordStop=True
+                else:
+                    isRecordStop=False
                 if not line:
                     continue
-
-                # print(line)
+                print(line)
                 await event_listener(line)
                 
                 # if line.startswith('data:'):
@@ -1227,6 +1243,7 @@ async def main(page: Page):
         await recordStartButton.update_async()
         await recordSaveButton.update_async()
         await recordDeleteButton.update_async()
+        await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
         await page.update_async()
 
     async def recordStart(e):
@@ -1320,6 +1337,9 @@ async def main(page: Page):
     ###################
 
     async def move_vertical_divider(e: ft.DragUpdateEvent):
+        global connectStatus
+        if connectStatus:
+            return()
         if (e.delta_x > 0 and tab0c.widtha() < 1500) or (e.delta_x < 0 and tab0c.widtha() > 800):
             await tab0c.widthPlus(e.delta_x)
         await tab0c.update_async()
@@ -1328,6 +1348,9 @@ async def main(page: Page):
         await tab1c.update_async()
         
     async def show_draggable_cursor(e: ft.HoverEvent):
+        global connectStatus
+        if connectStatus:
+            return()
         e.control.mouse_cursor = ft.MouseCursor.RESIZE_LEFT_RIGHT
         await e.control.update_async()
         
