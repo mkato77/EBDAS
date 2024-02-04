@@ -69,7 +69,12 @@ async def main(page: Page):
     get_directory_dialog = ft.FilePicker(on_result=get_directory_result)
     
     page.overlay.append(get_directory_dialog)
-    
+
+
+    global rawResponseData, recordRawData
+    rawResponseData=""
+    recordRawData=""
+
     ###################
     ## 機材管理 System
     ###################
@@ -246,6 +251,7 @@ async def main(page: Page):
         #DataRow 
         )
     async def addRealtimeData(resList, resListFloat):
+        global rawResponseData
         b=ft.DataRow(
                 cells=[
                     ft.DataCell(ft.Text(resList[0], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(resList[0])),
@@ -263,35 +269,6 @@ async def main(page: Page):
         for i in range(0, 9):
             realtimeData[i].value=resList[i]
             # rtNowData[i].on_click=lambda e: pyperclip.copy(resList[i])
-
-        # rtNowData[0].value=resList[0]
-        # rtNowData[0].on_click=lambda e: pyperclip.copy(resList[0])
-        time.append(resListFloat[0])
-        temp.append(resListFloat[1])
-        pressure.append(resListFloat[2])
-        humidity.append(resListFloat[3])
-        altitude.append(resListFloat[4])
-        a0.append(resListFloat[5])
-        a1.append(resListFloat[6])
-        a2.append(resListFloat[7])
-        a3.append(resListFloat[8])
-        await realtimeGraphSystem.set(time=time[-100:], temp=temp[-100:], pressure=pressure[-100:], humidity=humidity[-100:], altitude=altitude[-100:], a0=a0[-100:], a1=a1[-100:], a2=a2[-100:], a3=a3[-100:])
-        await realtimeTable.update_async()
-        await realtimeRecordTable.update_async()
-        await page.update_async()
-        print(resList)
-        
-    global recordStartTime, recordStatus, recordDataStatus
-    recordStartTime=-1.0
-    recordStatus=False
-    recordDataStatus=False
-
-    global recordRawData, recordDateTime
-    recordRawData=""
-    recordDateTime=""
-    recordBaloonName=""
-
-    async def addRecordData(resList, resListFloat):
         global recordStartTime, recordStatus, recordDataStatus, recordRawData, recordDateTime, recordBaloonName
         if recordStatus:
             if recordStartTime==-1.0:
@@ -316,9 +293,7 @@ async def main(page: Page):
                         ft.DataCell(ft.Text(recordList[7], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[7])),
                         ft.DataCell(ft.Text(recordList[8], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[8])),
                         ])
-            table.rows.append(b)
-            for i in range(0, 9):
-                rtNowData[i].value=recordList[i]
+            # table.rows.append(b) kx
             r_time.append(recordListFloat[0])
             r_temp.append(recordListFloat[1])
             r_pressure.append(recordListFloat[2])
@@ -328,15 +303,50 @@ async def main(page: Page):
             r_a1.append(recordListFloat[6])
             r_a2.append(recordListFloat[7])
             r_a3.append(recordListFloat[8])
-            await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
-            await table_column.update_async()
-            await table.update_async()
             recordRawData+=', '.join(recordList)+"\n"
-            await page.update_async()
-            
+            rawRecorddata_tx.value=recordRawData
 
-    global rawResponseData
-    rawResponseData=""
+            for i in range(0, 9):
+                rtNowData[i].value=recordList[i]
+            await table_column.update_async()
+            await rawRecorddata_tx.update_async()
+            # await table.update_async() kx
+        await realtimeTable.update_async()
+        await realtimeRecordTable.update_async()
+
+        await page.update_async()
+        # rtNowData[0].value=resList[0]
+        # rtNowData[0].on_click=lambda e: pyperclip.copy(resList[0])
+        time.append(resListFloat[0])
+        temp.append(resListFloat[1])
+        pressure.append(resListFloat[2])
+        humidity.append(resListFloat[3])
+        altitude.append(resListFloat[4])
+        a0.append(resListFloat[5])
+        a1.append(resListFloat[6])
+        a2.append(resListFloat[7])
+        a3.append(resListFloat[8])
+        await realtimeGraphSystem.set(time=time[-100:], temp=temp[-100:], pressure=pressure[-100:], humidity=humidity[-100:], altitude=altitude[-100:], a0=a0[-100:], a1=a1[-100:], a2=a2[-100:], a3=a3[-100:])
+
+        if recordStatus:
+            await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
+
+        await page.update_async()
+        
+        #print(resList)
+        
+    global recordStartTime, recordStatus, recordDataStatus
+    recordStartTime=-1.0
+    recordStatus=False
+    recordDataStatus=False
+
+    global recordDateTime
+    recordDateTime=""
+    recordBaloonName=""
+
+    async def addRecordData(resList, resListFloat):
+        return()
+
 
     async def event_listener(response):
         global rawResponseData
@@ -360,8 +370,8 @@ async def main(page: Page):
                     await openSnackbar("エラーが発生しました。不適切なデータを受信した可能性があります。: "+str(e))
                     print(e)
                 else:
-                    await addRealtimeData(resList, resListFloat)
                     await addRecordData(resList, resListFloat)
+                    await addRealtimeData(resList, resListFloat)
                     #print(resList)
                     #resList
                     #print(f"Received response: {response}")
@@ -378,8 +388,8 @@ async def main(page: Page):
                 await openSnackbar("エラーが発生しました。不適切なデータを受信した可能性があります。: "+str(e))
                 print(e)
             else:
-                await addRealtimeData(resList, resListFloat)
                 await addRecordData(resList, resListFloat)
+                await addRealtimeData(resList, resListFloat)
                 #print(resList)
                 #resList
                 #print(f"Received response: {response}")
@@ -419,16 +429,9 @@ async def main(page: Page):
             # await countupTimer.start()
             for line in client:
                 if connectStatus==False:
-                    setuzokusaki.disabled=False
-                    setuzokuStartButton.disabled=False
-                    setuzokuStopButton.disabled=True
-                    # setuzokuStatusView.visible=True
-                    await openSnackbar("遠隔データ測定キットとの接続を終了しました。")
+
                     # await setuzokuStatusView.update_async()
-                    await menubaritem.update_async()
-                    await menubar.update_async()
-                    await page.update_async()
-                    return()
+                    break
                 if not line:
                     continue
 
@@ -446,6 +449,15 @@ async def main(page: Page):
             await page.update_async()
             await disconnectPC(e)
             print(f"Error connecting to the server: {e}")
+        else:
+            setuzokusaki.disabled=False
+            setuzokuStartButton.disabled=False
+            setuzokuStopButton.disabled=True
+            # setuzokuStatusView.visible=True
+            await menubaritem.update_async()
+            await menubar.update_async()
+            await page.update_async()
+            await openSnackbar("遠隔データ測定キットとの接続を終了しました。")
 
     page.banner = ft.Banner(
         # bgcolor=ft.colors.AMBER_100,
@@ -460,10 +472,10 @@ async def main(page: Page):
     async def disconnectPC(e):
         await recordStop(e)
         global connectStatus
+        connectStatus = False
         setuzokuStopButton.disabled=True
         await setuzokuStopButton.update_async()
         setuzokuStartButton.text="接続開始"
-        connectStatus = False
         setuzokusaki.disabled=False
         setuzokuStartButton.disabled=False
         # await countupTimer.stop()
@@ -559,7 +571,7 @@ async def main(page: Page):
             return()
         global rawResponseData
         realtimeRecordTable.rows.clear()
-        table.rows.clear()
+        # table.rows.clear() kx
         time.clear()
         temp.clear()
         pressure.clear()
@@ -584,6 +596,7 @@ async def main(page: Page):
             rtNowData[i].on_click=lambda e: pyperclip.copy("-")
         rawResponseData=""
         rawdata_tx.value=""
+        rawRecorddata_tx.value=""
 
         recordStartTime=-1.0
         recordStatus=False
@@ -594,7 +607,7 @@ async def main(page: Page):
         await tempGraphSystem.reset()
         await realtimeGraphSystem.reset()
         await close_resetAlert(e)
-        await table.update_async()
+        # await table.update_async() kx
         await table_column.update_async()
         await realtimeTable.update_async()
         await realtimeRecordTable.update_async()
@@ -1025,7 +1038,9 @@ async def main(page: Page):
     lv = ft.ListView(expand=1, spacing=10, padding=ft.padding.only(left=20, top=0, right=20, bottom=20), auto_scroll=False, on_scroll_interval=0)
     # lv.controls.append(lv0)
     lv.controls.append(table)
-    body.append(lv)
+    # body.append(lv)
+    rawRecorddata_tx=ft.TextField(hint_text="Record data", border=ft.InputBorder.NONE, filled=True, multiline=True,min_lines=10,max_lines=10,  read_only=True, value="")
+    body.append(rawRecorddata_tx)
     # await page.add_async(ft.Column(spacing=0, controls=[lv0, lv]))
     async def button_clicked(time):
         
@@ -1043,7 +1058,7 @@ async def main(page: Page):
                     ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
                     ])
 
-        table.rows.append(b)
+        # table.rows.append(b) kx
         await page.update_async()
         print("按钮被点击")
         
@@ -1108,7 +1123,7 @@ async def main(page: Page):
         if recordStatus == True or recordDataStatus == False:
             await openSnackbar("記録中 または 記録データがありません。")
             return()
-        table.rows.clear()
+        # table.rows.clear() kx
         r_time.clear()
         r_temp.clear()
         r_pressure.clear()
@@ -1118,6 +1133,8 @@ async def main(page: Page):
         r_a1.clear()
         r_a2.clear()
         r_a3.clear()
+        recordRawData=""
+        rawRecorddata_tx.value=""
         for i in range(0, 9):
             rtNowData[i].value="-"
             rtNowData[i].on_click=lambda e: pyperclip.copy("-")
@@ -1128,7 +1145,7 @@ async def main(page: Page):
         recordSaveButton.disabled=True
         recordDeleteButton.disabled=True
         await tempGraphSystem.reset()
-        await table.update_async()
+        # await table.update_async() kx
         recordDeleteTitle.color=None
         recordDeleteText.color=None
         recordDeleteIcon.color=None
@@ -1140,6 +1157,7 @@ async def main(page: Page):
         await recordStartButton.update_async()
         await recordSaveButton.update_async()
         await recordDeleteButton.update_async()
+        await rawRecorddata_tx.update_async()
         await page.update_async()
         
     recordDeleteTitle = ft.Text(value="一時データ削除", size=20)
@@ -1268,7 +1286,8 @@ async def main(page: Page):
         ],
     )
     body.append(rtBottomMenu)
-    body.append(ft.Row([rtAutoScSwitch, ft.Text("動作が重くなります! 記録は離陸中のみしてください。")], spacing=12))
+    # body.append(ft.Row([rtAutoScSwitch, ft.Text("動作が重くなります! 記録は離陸中のみしてください。")], spacing=12))
+    body.append(ft.Row([ft.Text("動作が重くなります! 記録は離陸中のみしてください。")], spacing=12))
 
 
     await page.add_async(menubaritem)
@@ -1307,14 +1326,22 @@ async def main(page: Page):
         await e.control.update_async()
         
     class c(ft.UserControl):
-        def __init__(self, m):
+        def __init__(self, m, scroll):
             super().__init__()
-            self.control = ft.Container(
-                content=ft.Column(m),
-                alignment=ft.alignment.center,
-                width=900,
-                # expand=5,
-            )
+            if scroll:
+                self.control = ft.Container(
+                    content=ft.Column(m, scroll="AUTO"),
+                    alignment=ft.alignment.center,
+                    width=900,
+                    # expand=5,
+                )
+            else:
+                self.control = ft.Container(
+                    content=ft.Column(m),
+                    alignment=ft.alignment.center,
+                    width=900,
+                    # expand=5,
+                )
             
         async def widthPlus(self, x):
             self.control.width += x
@@ -1334,8 +1361,8 @@ async def main(page: Page):
             expand=2,
         )
     
-    tab0c=c(rtTab)
-    tab1c=c(body)
+    tab0c=c(rtTab, scroll=False)
+    tab1c=c(body, scroll=True)
         
     Tab0=ft.Row(
         controls=[
