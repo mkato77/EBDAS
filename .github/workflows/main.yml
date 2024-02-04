@@ -1,0 +1,62 @@
+name: build-flet-cross
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Create Release"
+        run: gh release create ${{github.ref_name}} --draft --verify-tag --notes "Release ${{github.ref_name}}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  cross-build:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            flet-name: EBDAS_build_linux
+            binary-name: EBDAS_${{github.ref_name}}_build_linux.tar.gz
+          #- runs-on: macos-latest
+           # flet-name: EBDAS_${{github.ref_name}}_build_windows
+            #binary-name: multi_assets_sim_macos.tar.gz
+          - runs-on: windows-latest
+            flet-name: EBDAS_${{github.ref_name}}_build_windows
+            binary-name: EBDAS_${{github.ref_name}}_build_windows.zip
+    runs-on: ${{ matrix.runs-on }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.16.9"
+          cache: "pip"
+      - name: Setup Flutter SDK
+        uses: flutter-actions/setup-flutter@v2
+        with:
+          channel: stable
+          version: latest
+      - run: pip install -r requirements.txt
+      #- run: flet pack app.py --name ${{ matrix.flet-name }}
+      # - run: ls -ahl dist
+      - name: "Linux build & compress"
+        if: runner.os != 'Windows'
+        run: |
+          flet build linux
+          tar zcvf ${{matrix.binary-name}} build/linux
+      - name: "Windows build & compress"
+        if: runner.os == 'Windows'
+        run: |
+          flet build windows
+          powershell Compress-Archive -Path build/windows -DestinationPath ${{matrix.binary-name}}
+      - name: "Upload Release: ${{matrix.binary-name}}"
+        run: gh release upload ${{github.ref_name}} ${{matrix.binary-name}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
