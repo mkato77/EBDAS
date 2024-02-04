@@ -15,6 +15,7 @@ class MyRequestHandler(BaseHTTPRequestHandler):
                 elapsed_time = time.time() - start_time
                 response = f"{elapsed_time:.2f}, {random.uniform(20, 30):.1f}, {random.uniform(900, 999):.1f}, {random.uniform(30, 40):.1f}, {random.uniform(199, 220):.1f},{random.uniform(20, 30):.1f},{random.uniform(20, 30):.1f},{random.uniform(20, 30):.1f},{random.uniform(20, 30):.1f}\n"
                 self.wfile.write(response.encode('utf-8'))
+                print(response)
                 time.sleep(0.5)
 
 # サーバーのポート番号
@@ -27,6 +28,8 @@ print(f"Server started on http://localhost:{port}")
 try:
     httpd.serve_forever()
 except KeyboardInterrupt:
+    pass
+except ConnectionAbortedError:
     pass
 
 httpd.server_close()
