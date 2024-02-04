@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "Create Release"
-        run: gh release create ${{github.ref_name}} --draft --verify-tag -t "${{github.ref_name}}" --notes "Release ${{github.ref_name}}"
+        run: gh release create ${{github.ref_name}} --draft --verify-tag -t "${{github.ref_name}}" --notes "##Changed\n\n##Fixed\n\n\nRelease ${{github.ref_name}}\n"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   cross-build:
@@ -20,14 +20,14 @@ jobs:
     strategy:
       matrix:
         include:
-          # - runs-on: ubuntu-latest
-          #   flet-name: EBDAS_build_linux
-          #   binary-name: EBDAS_${{github.ref_name}}_build_linux.tar.gz
-          #- runs-on: macos-latest
-           # flet-name: EBDAS_${{github.ref_name}}_build_windows
-            #binary-name: multi_assets_sim_macos.tar.gz
+          - runs-on: ubuntu-latest
+            flet-name: EBDAS_${{github.ref_name}}_linux
+            binary-name: EBDAS_${{github.ref_name}}_build_linux.tar.gz
+          - runs-on: macos-latest
+            flet-name: EBDAS_${{github.ref_name}}_macos
+            binary-name: EBDAS_${{github.ref_name}}_build_macos.tar.gz
           - runs-on: windows-latest
-            flet-name: EBDAS_${{github.ref_name}}_build_windows
+            flet-name: EBDAS_${{github.ref_name}}_windows
             binary-name: EBDAS_${{github.ref_name}}_build_windows.zip
     runs-on: ${{ matrix.runs-on }}
     permissions:
@@ -36,33 +36,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.11.7"
+          python-version: 3.11.7
           cache: "pip"
-      - name: apt update & install (Ubuntu)
-        if: runner.os != 'Windows'
-        run: |
-          sudo apt-get update
-          sudo apt-get install libc++abi-dev libc++-dev libunwind-dev
-          sudo apt-get install ninja-build libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
-      - name: Setup Flutter SDK
-        uses: flutter-actions/setup-flutter@v2
-        with:
-          channel: stable
-          version: 3.16.9
       - run: pip install -r requirements.txt
-      #- run: flet pack app.py --name ${{ matrix.flet-name }}
-      # - run: ls -ahl dist
-      - name: "Linux build & compress"
+      - run: flet pack app.py --name ${{ matrix.flet-name }}
+      - name: "Linux/MacOS compress"
         if: runner.os != 'Windows'
-        run: |
-          flet build linux
-          tar zcvf ${{matrix.binary-name}} build/linux
-      - name: "Windows build & compress"
+        run: tar zcvf ${{matrix.binary-name}} dist
+      - name: "Windows compress"
         if: runner.os == 'Windows'
-        run: |
-          flet build windows
-          powershell Compress-Archive -Path build/windows -DestinationPath ${{matrix.binary-name}}
-      - name: "Upload Release: ${{matrix.binary-name}}"
+        run: powershell Compress-Archive -Path dist -DestinationPath ${{matrix.binary-name}}
+      - name: "Upload Release"
         run: gh release upload ${{github.ref_name}} ${{matrix.binary-name}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
