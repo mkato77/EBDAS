@@ -16,18 +16,19 @@ You can use builded software(.exe) in [Releases](https://github.com/mkato77/EBDA
 
 ## Development
 ### Requirements
-- Python 3.6 or later
+- Python 3.7 or later
 - pip
 - flet
 - matplotlib
 - numpy
 - requests
 - pyperclip
+- pyinstaller
 
 To install the required packages, run the following command:
 
 ```
-pip install flet matplotlib numpy requests pyperclip
+pip install flet matplotlib numpy requests pyperclip pyinstaller
 ```
 
 ### Usage
@@ -54,6 +55,7 @@ python server.py
 and access to `http://localhost:8756/`.
 
 You can run the software by setting `http://localhost:8756` from 編集>測定キット接続設定 in the app to imitate a measuring kit.
+
 ※ The default port number is 8756. If you want to change the port number, please change the number in the `server.py` file.
 
 ## License
