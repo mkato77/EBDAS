@@ -8,6 +8,7 @@ import requests
 import time
 import pyperclip
 from tempgraph import tempGraph
+from stopwatch import StopwatchApp
 import copy
 import re
 import datetime
@@ -39,6 +40,13 @@ async def main(page: Page):
     
     # ストレージ
     # await page.client_storage.clear_async()
+    global recordStopWatchSystem
+    recordStopWatchSystem=StopwatchApp()
+    global recordStartTime, recordStatus, recordDataStatus, recordStartAltitude
+    recordStartTime=-1.0
+    recordStartAltitude=0.0
+    recordStatus=False
+    recordDataStatus=False
 
     ################################
     ### Snackbar
@@ -75,6 +83,9 @@ async def main(page: Page):
     rawResponseData=""
     recordRawData=""
 
+    global connectStatus
+    connectStatus = False
+
     ###################
     ## 機材管理 System
     ###################
@@ -84,7 +95,7 @@ async def main(page: Page):
             if option_name == option.key:
                 return option
         return None
-    
+        
     async def dropdown_changed(e):
         if await page.client_storage.contains_key_async("hontai_ip") == False or await page.client_storage.get_async("hontai_ip")==None:
             await openSnackbar("接続先が未設定です。")
@@ -105,9 +116,11 @@ async def main(page: Page):
             await reloadBaloons(e)
             return()
         projectTitle.value = f"プロジェクト名: {baloonSelecter.value}"
-        recordStartButton.disabled=False
-        await recordStartButton.update_async()
+        if connectStatus==True and ((recordStatus==False and recordDataStatus==True) or recordDataStatus==False):
+            recordStartButton.disabled=False
+            await recordStartButton.update_async()
         await page.update_async()
+        await page.client_storage.set_async("baloon", baloonSelecter.value)
 
     async def add_clicked(e):
         if not option_textbox.value:
@@ -145,7 +158,7 @@ async def main(page: Page):
             # d.value = None
             await page.update_async()
     baloonSelecter = ft.Dropdown(label="使用機材", width=200,hint_text="機材管理タブで追加可能", prefix_icon=ft.icons.AIRPLANEMODE_ACTIVE_ROUNDED, on_change=dropdown_changed)
-    
+
     async def reloadBaloons(e):
         if await page.client_storage.contains_key_async("directory_path") == True or await page.client_storage.get_async("directory_path")!="":
             dir_path=await page.client_storage.get_async("directory_path")
@@ -177,7 +190,7 @@ async def main(page: Page):
     #     baloonSelecter.error_text="機材管理タブから追加してください。"
     #     await page.update_async()
     
-    option_textbox = ft.TextField(hint_text="新しい機材の名前を決めてください。")
+    option_textbox = ft.TextField(hint_text="新しいバルーンの名前を決めてください。", label="新しいバルーン名")
     add = ft.ElevatedButton("追加", on_click=add_clicked)
     delete = ft.OutlinedButton("Delete selected", on_click=delete_clicked)
     
@@ -206,8 +219,7 @@ async def main(page: Page):
     global isRecordStop
     isRecordStop=True
     
-    global connectStatus
-    connectStatus = False
+
 
     table=ft.DataTable(
         heading_row_height=0,
@@ -271,18 +283,21 @@ async def main(page: Page):
         for i in range(0, 9):
             realtimeData[i].value=resList[i]
             # rtNowData[i].on_click=lambda e: pyperclip.copy(resList[i])
-        global recordStartTime, recordStatus, recordDataStatus, recordRawData, recordDateTime, recordBaloonName, isRecordStop
+        global recordStartTime, recordStartAltitude, recordStatus, recordDataStatus, recordRawData, recordDateTime, recordBaloonName, isRecordStop
         if isRecordStop==False:
-            if recordStartTime==-1.0:
+            if recordStartTime==-1.00:
                 recordStartTime=resListFloat[0]
+                recordStartAltitude=resListFloat[4]
                 recordRawData+="time[sec], temperature[degC], pressure[hPa], humidity[%], altitude[m], a0, a1, a2, a3\n"
                 recordBaloonName=baloonSelecter.value
                 recordDateTime=copy.deepcopy(dt_now.strftime('%Y-%m-%d_%H-%M-%S'))
             recordDataStatus = True
             recordList=copy.deepcopy(resList)
-            recordList[0]=str(round(resListFloat[0]-recordStartTime, 1))
+            recordList[0]='{:.2f}'.format(resListFloat[0]-recordStartTime)
+            recordList[4]='{:.1f}'.format(resListFloat[4]-recordStartAltitude)
             recordListFloat=copy.deepcopy(resListFloat)
-            recordListFloat[0]=round(resListFloat[0]-recordStartTime,1)
+            recordListFloat[0]=round(resListFloat[0]-recordStartTime,2)
+            recordListFloat[4]=round(resListFloat[4]-recordStartAltitude,1)
             b=ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(recordList[0], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[0])),
@@ -337,10 +352,6 @@ async def main(page: Page):
         
         #print(resList)
         
-    global recordStartTime, recordStatus, recordDataStatus
-    recordStartTime=-1.0
-    recordStatus=False
-    recordDataStatus=False
 
     global recordDateTime
     recordDateTime=""
@@ -360,25 +371,16 @@ async def main(page: Page):
             rawResponseData+=response[:85]+"\n"
             rawdata_tx.value=rawResponseData
             await rawdata_tx.update_async()
-            if response[85:]!="":
-                response=response[85:]
-                rawResponseData+=response+"\n"
-                rawdata_tx.value=rawResponseData
-                await rawdata_tx.update_async()
-                try:
-                    resList=[x.strip() for x in response.split(',')]
-                    resListFloat=[float(x.strip()) for x in response.split(',')]
-                except Exception as e:
-                    await openSnackbar("エラーが発生しました。不適切なデータを受信した可能性があります。: "+str(e))
-                    print(e)
-                else:
-                    await addRecordData(resList, resListFloat)
-                    await addRealtimeData(resList, resListFloat)
-                    #print(resList)
-                    #resList
-                    #print(f"Received response: {response}")
-                # print("Connected.")
-                return()
+            if (baloonSelecter.value != None and baloonSelecter.value != "") and ((recordStatus==False and recordDataStatus==True) or recordDataStatus==False):
+                recordStartButton.disabled=False
+                await recordStartButton.update_async()
+                #print(resList)
+                #resList
+                #print(f"Received response: {response}")
+            # print("Connected.")
+            page.window_resizable=False
+            await page.update_async()
+            return()
         else:
             rawResponseData+=response+"\n"
             rawdata_tx.value=rawResponseData
@@ -432,17 +434,19 @@ async def main(page: Page):
         await realtimeGraphSystem.reset()
         await setuzokuStartButton.update_async()
         await setuzokusaki.update_async()
+        page.splash = ft.ProgressBar()
         await page.update_async()
 
         try:
             server_url = await view_hontai_ip()
             response = requests.get(server_url, stream=True)
             response.raise_for_status()
+            print("\nConnected to server: "+server_url+"\n")
+            page.splash = None
             client = response.iter_lines(chunk_size=1, decode_unicode=True)
             # await countupTimer.start()
             for line in client:
                 if connectStatus==False:
-
                     # await setuzokuStatusView.update_async()
                     break
                 if recordStatus==False:
@@ -453,7 +457,7 @@ async def main(page: Page):
                     continue
                 print(line)
                 await event_listener(line)
-                
+
                 # if line.startswith('data:'):
                 #     data = line[6:]
                 #     event_listener(data)
@@ -494,7 +498,11 @@ async def main(page: Page):
         setuzokuStartButton.text="接続開始"
         setuzokusaki.disabled=False
         setuzokuStartButton.disabled=False
+        recordStartButton.disabled=True
+        await recordStartButton.update_async()
         # await countupTimer.stop()
+        page.window_resizable=True
+        page.splash = None
         await page.update_async()
         
     class Countdown(ft.UserControl):
@@ -581,10 +589,15 @@ async def main(page: Page):
         await page.update_async()
         
     async def rtReset(e):
-        global recordStartTime, recordStatus
+        global recordStartTime, recordStatus, recordStartAltitude
         if recordStatus:
             await openSnackbar("記録中のため、リセットできません。")
             return()
+        global recordStopWatchSystem
+        recordTime=recordStopWatchSystem.stop()
+        recordStopWatchSystem.reset()
+        recordTimeView.value="-"
+        await recordTimeView.update_async()
         global rawResponseData, recordRawData, recordDataStatus
         realtimeRecordTable.rows.clear()
         # table.rows.clear() kx
@@ -618,6 +631,7 @@ async def main(page: Page):
         recordDeleteText.color=None
         recordDeleteIcon.color=None
         recordStartTime=-1.0
+        recordStartAltitude=0.0
         recordStatus=False
         recordDataStatus=False
         baloonSelecter.value=None
@@ -772,9 +786,36 @@ async def main(page: Page):
     projectTitle = ft.Text("プロジェクト: -")
     projectDirectory = ft.Text("保存先: -" if await page.client_storage.contains_key_async("directory_path") == False or await page.client_storage.get_async("directory_path")=="" else "保存先: "+ await page.client_storage.get_async("directory_path"))
     projectFlyCount = ft.Text("飛行回数: -")
-    
+
+
+    if await page.client_storage.contains_key_async("baloon") == True and await page.client_storage.get_async("baloon")!=None:
+        if await page.client_storage.contains_key_async("hontai_ip") == False or await page.client_storage.get_async("hontai_ip")==None:
+            await openSnackbar("接続先が未設定です。")
+            await page.client_storage.remove_async("baloon")
+            await page.update_async()
+            return()
+        if await page.client_storage.contains_key_async("directory_path") == False or await page.client_storage.get_async("directory_path")=="":
+            await openSnackbar("ディレクトリが指定されていません。保存先を設定してください。")
+            await page.client_storage.remove_async("baloon")
+            await page.update_async()
+            return()
+        if os.path.isdir(await page.client_storage.get_async("directory_path")+"/"+await page.client_storage.get_async("baloon")) == False:
+            await openSnackbar("ディレクトリが存在しません。")
+            await page.client_storage.remove_async("baloon")
+            await page.update_async()
+            return()
+        baloonSelecter.value=await page.client_storage.get_async("baloon")
+        projectTitle.value = f"プロジェクト名: {baloonSelecter.value}"
+        if connectStatus==True and ((recordStatus==False and recordDataStatus==True) or recordDataStatus==False):
+            recordStartButton.disabled=False
+            await recordStartButton.update_async()
+        await page.update_async()
+
+
     async def openFilePicker(e):
         await get_directory_dialog.get_directory_path_async(dialog_title="測定したデータを保存するディレクトリを選択してください。")
+    
+    recordTimeView = ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
     
     menubar = ft.MenuBar(
         expand=True,
@@ -913,7 +954,9 @@ async def main(page: Page):
                 #     )
                 # ],
             ),
-
+            ft.SubmenuButton(
+                content=ft.Row([ft.Text("記録時間 :"), recordTimeView], )
+            ),
         ],
     )
 
@@ -1070,10 +1113,22 @@ async def main(page: Page):
         )
 
     async def recordDelete(e):
-        global connectStatus, recordStatus, recordDataStatus, recordRawData, recordBaloonName, recordDateTime, recordStartTime
+        global connectStatus, recordStatus, recordDataStatus, recordRawData, recordBaloonName, recordDateTime, recordStartTime, recordStartAltitude
         if recordStatus == True or recordDataStatus == False:
             await openSnackbar("記録中 または 記録データがありません。")
             return()
+        recordStartTime=-1.0
+        recordStartAltitude=0.0
+        recordStatus=False
+        recordDataStatus=False
+        recordSaveButton.disabled=True
+        recordDeleteButton.disabled=True
+        recordDeleteTitle.color=None
+        recordDeleteText.color=None
+        recordDeleteIcon.color=None
+        await recordDeleteButton.update_async()
+        await recordSaveButton.update_async()
+
         # table.rows.clear() kx
         r_time.clear()
         r_temp.clear()
@@ -1089,18 +1144,18 @@ async def main(page: Page):
         for i in range(0, 9):
             rtNowData[i].value="-"
             rtNowData[i].on_click=lambda e: pyperclip.copy("-")
-        recordStartTime=-1.0
-        recordStatus=False
-        recordDataStatus=False
-        recordStartButton.disabled=False
-        recordSaveButton.disabled=True
-        recordDeleteButton.disabled=True
+        if baloonSelecter.value != None and connectStatus==True and ((recordStatus==False and recordDataStatus==True) or recordDataStatus==False):
+            recordStartButton.disabled=False
+        else:
+            recordStartButton.disabled=True
         await tempGraphSystem.reset()
         # await table.update_async() kx
-        recordDeleteTitle.color=None
-        recordDeleteText.color=None
-        recordDeleteIcon.color=None
-        
+
+        global recordStopWatchSystem
+        recordTime=recordStopWatchSystem.stop()
+        recordStopWatchSystem.reset()
+        recordTimeView.value="-"
+        await recordTimeView.update_async()
         await recordDeleteTitle.update_async()
         await recordDeleteText.update_async()
         await recordDeleteIcon.update_async()
@@ -1146,20 +1201,22 @@ async def main(page: Page):
     recordStartIcon = ft.Icon(name=ft.icons.RADIO_BUTTON_CHECKED, color="red")
     
     async def recordStop(e):
+        global recordStopWatchSystem
+        recordTime=recordStopWatchSystem.stop()
+        recordStopWatchSystem.reset()
         global connectStatus, recordStatus
         # if connectStatus == False:
         #     return()
         recordStatus = False
         recordStartButton.on_click=recordStart
         if recordDataStatus:
-            recordStartButton.disabled=True
             recordSaveButton.disabled=False
             recordDeleteButton.disabled=False
             recordDeleteTitle.color="red"
             recordDeleteText.color="red"
             recordDeleteIcon.color="red"
+            recordTimeView.value=recordTime
         else:
-            recordStartButton.disabled=False
             recordSaveButton.disabled=True
             recordDeleteButton.disabled=True
         recordStartTitle.value="記録スタート"
@@ -1167,16 +1224,19 @@ async def main(page: Page):
         recordStartTitle.color=None
         recordStartText.color=None
         recordStartIcon.name=ft.icons.RADIO_BUTTON_CHECKED
+        recordStartButton.disabled=True
         await recordStartTitle.update_async()
         await recordStartText.update_async()
         await recordStartIcon.update_async()
         await recordStartButton.update_async()
         await recordSaveButton.update_async()
         await recordDeleteButton.update_async()
+        await recordTimeView.update_async()
         await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
         await page.update_async()
 
     async def recordStart(e):
+        recordStopWatchSystem.start()
         global connectStatus, recordStatus
         # if connectStatus == False:
         #     return()
@@ -1190,6 +1250,8 @@ async def main(page: Page):
         await recordStartTitle.update_async()
         await recordStartText.update_async()
         await recordStartIcon.update_async()
+        recordTimeView.value="記録中"
+        await recordTimeView.update_async()
         await page.update_async()
 
         
@@ -1325,7 +1387,7 @@ async def main(page: Page):
 
     await page.add_async(dlg_modal)
     
-    rawdata_tx=ft.TextField(label="Raw data", multiline=True,max_lines=10,  read_only=True, value="")
+    rawdata_tx=ft.TextField(hint_text="Raw data", border=ft.InputBorder.NONE, filled=True, multiline=True,min_lines=16,max_lines=16,  read_only=True, value="")
     
     tempGraphSystem= tempGraph()
     bodySide.append(tempGraphSystem)
@@ -1362,14 +1424,15 @@ async def main(page: Page):
             if scroll:
                 self.control = ft.Container(
                     content=ft.Column(m, scroll="AUTO"),
-                    # alignment=ft.alignment.center,
+                    alignment=ft.alignment.top_left,
                     width=900,
+                    padding=ft.padding.only(top=8)
                     # expand=5,
                 )
             else:
                 self.control = ft.Container(
                     content=ft.Column(m),
-                    # alignment=ft.alignment.center,
+                    alignment=ft.alignment.top_left,
                     width=900,
                     # expand=5,
                 )
@@ -1438,7 +1501,7 @@ async def main(page: Page):
             ),
             ft.Tab(
                 text="記録する",
-                icon=ft.icons.ANALYTICS_ROUNDED,
+                icon=ft.icons.EDIT_NOTE_ROUNDED,
                 content=Tab1
             ),
             # ft.Tab(
@@ -1452,25 +1515,25 @@ async def main(page: Page):
             #         # expand=2,
             #     ),
             # ),
-            ft.Tab(
-                text="計算機",
-                icon=ft.icons.CALCULATE_ROUNDED,
-                content=ft.Text("この機能はまだ実装されていません。"),
-            ),
-            ft.Tab(
-                text="チェックリスト",
-                icon=ft.icons.CHECK_BOX_ROUNDED,
-                content=ft.Text("この機能はまだ実装されていません。"),
-            ),
+            # ft.Tab(
+            #     text="計算機",
+            #     icon=ft.icons.CALCULATE_ROUNDED,
+            #     content=ft.Text("この機能はまだ実装されていません。"),
+            # ),
+            # ft.Tab(
+            #     text="チェックリスト",
+            #     icon=ft.icons.CHECK_BOX_ROUNDED,
+            #     content=ft.Text("この機能はまだ実装されていません。"),
+            # ),
             ft.Tab(
                 text="生データ",
                 icon=ft.icons.TEXT_FIELDS_ROUNDED,
-                content=ft.Column([ElevatedButton("コピー", on_click=dataCopy), rawdata_tx], alignment=ft.MainAxisAlignment.START, expand=True),
+                content=ft.Container(content=ft.Column([ElevatedButton("コピー", on_click=dataCopy), rawdata_tx], alignment=ft.MainAxisAlignment.START, expand=True),padding=ft.padding.only(top=8))
             ),
             ft.Tab(
                 text="機材管理",
                 icon=ft.icons.AIRPLANEMODE_ACTIVE_ROUNDED,
-                content=ft.Column([ft.Row(controls=[option_textbox, add])], alignment=ft.MainAxisAlignment.START, expand=True),
+                content=ft.Container(content=ft.Column([ft.Column(controls=[option_textbox, add])], alignment=ft.MainAxisAlignment.START, expand=True),padding=ft.padding.only(top=8))
             ),
         ],
         expand=1,
