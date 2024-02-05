@@ -28,7 +28,7 @@ You can use builded software(.exe) in [Releases](https://github.com/mkato77/EBDA
 To install the required packages, run the following command:
 
 ```
-pip install flet matplotlib numpy requests pyperclip
+pip install flet matplotlib numpy requests pyperclip pyinstaller
 ```
 
 ### Usage
