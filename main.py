@@ -1015,76 +1015,6 @@ async def main(page: Page):
                 ]),
             ],
         )
-    lv0.controls.append(table_column)
-    body.append(lv0)
-    
-    realtimeTable=ft.DataTable(
-        # border=ft.border.all(2, "red"),
-        show_bottom_border=True,
-        horizontal_margin=0, 
-        #columns 里必须添加 DataColumn 类型的控件
-        columns=[
-            ft.DataColumn(ft.Text("時間[sec]"), numeric=True),
-            ft.DataColumn(ft.Text("外気温度[℃]"), numeric=True),
-            ft.DataColumn(ft.Text("圧力[hPa]"), numeric=True),
-            ft.DataColumn(ft.Text("湿度[%]"), numeric=True),
-            ft.DataColumn(ft.Text("標高[m]"), numeric=True),
-            ft.DataColumn(ft.Text("a0[℃]"), numeric=True),
-            ft.DataColumn(ft.Text("a1[℃]"), numeric=True),
-            ft.DataColumn(ft.Text("a2[℃]"), numeric=True),
-            ft.DataColumn(ft.Text("a3[℃]"), numeric=True),
-        ],
-        rows=[
-                ft.DataRow([
-                    ft.DataCell(realtimeData[0]),
-                    ft.DataCell(realtimeData[1]),
-                    ft.DataCell(realtimeData[2]),
-                    ft.DataCell(realtimeData[3]),
-                    ft.DataCell(realtimeData[4]),
-                    ft.DataCell(realtimeData[5]),
-                    ft.DataCell(realtimeData[6]),
-                    ft.DataCell(realtimeData[7]),
-                    ft.DataCell(realtimeData[8]),
-                ]),
-            ],
-        )
-    realtimeLv.controls.append(realtimeTable)
-    rtTab.append(realtimeLv)
-    
-    realtimeRecordLv = ft.ListView(expand=1, spacing=10, padding=ft.padding.only(left=20, top=0, right=20, bottom=20), auto_scroll=False, on_scroll_interval=0)
-    # lv.controls.append(lv0)
-    realtimeRecordLv.controls.append(realtimeRecordTable)
-    rtTab.append(realtimeRecordLv)
-
-    lv = ft.ListView(expand=1, spacing=10, padding=ft.padding.only(left=20, top=0, right=20, bottom=20), auto_scroll=False, on_scroll_interval=0)
-    # lv.controls.append(lv0)
-    lv.controls.append(table)
-    # body.append(lv)
-    rawRecorddata_tx=ft.TextField(hint_text="Record data", border=ft.InputBorder.NONE, filled=True, multiline=True,min_lines=10,max_lines=10,  read_only=True, value="")
-    body.append(rawRecorddata_tx)
-    # await page.add_async(ft.Column(spacing=0, controls=[lv0, lv]))
-    async def button_clicked(time):
-        
-        
-        b=ft.DataRow(
-                cells=[
-                    ft.DataCell(ft.Text(time, selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("28.2", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("993.4", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("39.8", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("167.0", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("23.5", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
-                    ])
-
-        # table.rows.append(b) kx
-        await page.update_async()
-        print("按钮被点击")
-        
-
-    
         
     async def recordSave(e):
         global connectStatus, recordStatus, recordDataStatus, recordRawData, recordBaloonName, recordDateTime
@@ -1309,6 +1239,78 @@ async def main(page: Page):
         ],
     )
     body.append(rtBottomMenu)
+
+    lv0.controls.append(table_column)
+    body.append(lv0)
+    
+    realtimeTable=ft.DataTable(
+        # border=ft.border.all(2, "red"),
+        show_bottom_border=True,
+        horizontal_margin=0, 
+        #columns 里必须添加 DataColumn 类型的控件
+        columns=[
+            ft.DataColumn(ft.Text("時間[sec]"), numeric=True),
+            ft.DataColumn(ft.Text("外気温度[℃]"), numeric=True),
+            ft.DataColumn(ft.Text("圧力[hPa]"), numeric=True),
+            ft.DataColumn(ft.Text("湿度[%]"), numeric=True),
+            ft.DataColumn(ft.Text("標高[m]"), numeric=True),
+            ft.DataColumn(ft.Text("a0[℃]"), numeric=True),
+            ft.DataColumn(ft.Text("a1[℃]"), numeric=True),
+            ft.DataColumn(ft.Text("a2[℃]"), numeric=True),
+            ft.DataColumn(ft.Text("a3[℃]"), numeric=True),
+        ],
+        rows=[
+                ft.DataRow([
+                    ft.DataCell(realtimeData[0]),
+                    ft.DataCell(realtimeData[1]),
+                    ft.DataCell(realtimeData[2]),
+                    ft.DataCell(realtimeData[3]),
+                    ft.DataCell(realtimeData[4]),
+                    ft.DataCell(realtimeData[5]),
+                    ft.DataCell(realtimeData[6]),
+                    ft.DataCell(realtimeData[7]),
+                    ft.DataCell(realtimeData[8]),
+                ]),
+            ],
+        )
+    realtimeLv.controls.append(realtimeTable)
+    rtTab.append(realtimeLv)
+    
+    realtimeRecordLv = ft.ListView(expand=1, spacing=10, padding=ft.padding.only(left=20, top=0, right=20, bottom=20), auto_scroll=False, on_scroll_interval=0)
+    # lv.controls.append(lv0)
+    realtimeRecordLv.controls.append(realtimeRecordTable)
+    rtTab.append(realtimeRecordLv)
+
+    lv = ft.ListView(expand=1, spacing=10, padding=ft.padding.only(left=20, top=0, right=20, bottom=20), auto_scroll=False, on_scroll_interval=0)
+    # lv.controls.append(lv0)
+    lv.controls.append(table)
+    # body.append(lv)
+    rawRecorddata_tx=ft.TextField(hint_text="Record data", border=ft.InputBorder.NONE, filled=True, multiline=True,min_lines=10,max_lines=10,  read_only=True, value="")
+    body.append(rawRecorddata_tx)
+    # await page.add_async(ft.Column(spacing=0, controls=[lv0, lv]))
+    async def button_clicked(time):
+        
+        
+        b=ft.DataRow(
+                cells=[
+                    ft.DataCell(ft.Text(time, selectable=True, max_lines=1, no_wrap=True)),
+                    ft.DataCell(ft.Text("28.2", selectable=True, max_lines=1, no_wrap=True)),
+                    ft.DataCell(ft.Text("993.4", selectable=True, max_lines=1, no_wrap=True)),
+                    ft.DataCell(ft.Text("39.8", selectable=True, max_lines=1, no_wrap=True)),
+                    ft.DataCell(ft.Text("167.0", selectable=True, max_lines=1, no_wrap=True)),
+                    ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
+                    ft.DataCell(ft.Text("23.5", selectable=True, max_lines=1, no_wrap=True)),
+                    ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
+                    ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
+                    ])
+
+        # table.rows.append(b) kx
+        await page.update_async()
+        print("按钮被点击")
+        
+
+    
+
     # body.append(ft.Row([rtAutoScSwitch, ft.Text("動作が重くなります! 記録は離陸中のみしてください。")], spacing=12))
     body.append(ft.Row([ft.Text("動作が重くなります! 記録は離陸中のみしてください。")], spacing=12))
 
@@ -1360,14 +1362,14 @@ async def main(page: Page):
             if scroll:
                 self.control = ft.Container(
                     content=ft.Column(m, scroll="AUTO"),
-                    alignment=ft.alignment.center,
+                    # alignment=ft.alignment.center,
                     width=900,
                     # expand=5,
                 )
             else:
                 self.control = ft.Container(
                     content=ft.Column(m),
-                    alignment=ft.alignment.center,
+                    # alignment=ft.alignment.center,
                     width=900,
                     # expand=5,
                 )
