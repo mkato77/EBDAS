@@ -65,23 +65,23 @@ async def main(page: Page):
     else:
         rtRenderSwitch=ft.Switch(label="リアルタイム描画", on_change=rtRenderChange, value=True)
 
-    ################################
-    ### autoscrollSwitch
-    ################################
+    # ################################
+    # ### autoscrollSwitch
+    # ################################
 
-    async def rtAutoScChange(e):
-        if rtAutoScSwitch.value:
-            lv.auto_scroll=False
-            await page.client_storage.set_async("isAutoSc", False)
-        else:
-            lv.auto_scroll=True
-            await page.client_storage.set_async("isAutoSc", True)
-        await lv.update_async()
+    # async def rtAutoScChange(e):
+    #     if rtAutoScSwitch.value:
+    #         lv.auto_scroll=False
+    #         await page.client_storage.set_async("isAutoSc", False)
+    #     else:
+    #         lv.auto_scroll=True
+    #         await page.client_storage.set_async("isAutoSc", True)
+    #     await lv.update_async()
 
-    if await page.client_storage.contains_key_async("isAutoSc") == True:
-        rtAutoScSwitch=ft.Switch(label="自動スクロール", on_change=rtAutoScChange, value=await page.client_storage.get_async("isAutoSc"))
-    else:
-        rtAutoScSwitch=ft.Switch(label="自動スクロール", on_change=rtRenderChange, value=False)
+    # if await page.client_storage.contains_key_async("isAutoSc") == True:
+    #     rtAutoScSwitch=ft.Switch(label="自動スクロール", on_change=rtAutoScChange, value=await page.client_storage.get_async("isAutoSc"))
+    # else:
+    #     rtAutoScSwitch=ft.Switch(label="自動スクロール", on_change=rtRenderChange, value=False)
 
     ################################
     ### Snackbar
@@ -776,7 +776,7 @@ async def main(page: Page):
                                     setuzokuStopButton,
                                     rtResetButton,
                                     rtRenderSwitch,
-                                    rtAutoScSwitch
+                                    # rtAutoScSwitch
                                     # ft.Text("接続時間:"),
                                     
                                 ],
@@ -1436,7 +1436,7 @@ async def main(page: Page):
     
 
     # body.append(ft.Row([rtAutoScSwitch, ft.Text("動作が重くなります! 記録は離陸中のみしてください。")], spacing=12))
-    body.append(ft.Row([ft.Text("動作が重くなります! 記録は離陸中のみしてください。")], spacing=12))
+    body.append(ft.Row([ft.Text("記録は離陸中のみしてください。正確な記録のために、接続前にリアルタイム描画をオフにしてください。")], spacing=12))
 
 
     await page.add_async(menubaritem)
