@@ -2,6 +2,8 @@
 
 Balloon measurement data analysis software for balloons to be produced at the Balloon Festa in Tsukuba, a pre-public competition of Koshien of Science 2024.
 
+![image](https://github.com/mkato77/EBDAS/assets/80267487/6e28b832-e8f9-492c-933c-9024775d6a21)
+
 ## Features
 - Communication with Measurement Kit
 - Acquisition of measurement data
