@@ -18,6 +18,10 @@ dt_now = datetime.datetime.now()
 os.environ["FLET_WS_MAX_MESSAGE_SIZE"] = "8000000"
 
 async def main(page: Page):
+    ################################
+    ### Init
+    ################################
+    
     time=[]
     temp=[]
     pressure=[]
@@ -42,11 +46,42 @@ async def main(page: Page):
     # await page.client_storage.clear_async()
     global recordStopWatchSystem
     recordStopWatchSystem=StopwatchApp()
-    global recordStartTime, recordStatus, recordDataStatus, recordStartAltitude
+    global recordStartTime, recordStatus, recordDataStatus, recordStartAltitude, recordTime
     recordStartTime=-1.0
     recordStartAltitude=0.0
     recordStatus=False
     recordDataStatus=False
+    recordTime=-1
+    
+    ################################
+    ### realtimeRenderSwitch
+    ################################
+    
+    async def rtRenderChange(e):
+        await page.client_storage.set_async("isRtRender", rtRenderSwitch.value)
+        
+    if await page.client_storage.contains_key_async("isRtRender") == True:
+        rtRenderSwitch=ft.Switch(label="リアルタイム描画", on_change=rtRenderChange, value=await page.client_storage.get_async("isRtRender"))
+    else:
+        rtRenderSwitch=ft.Switch(label="リアルタイム描画", on_change=rtRenderChange, value=True)
+
+    ################################
+    ### autoscrollSwitch
+    ################################
+
+    async def rtAutoScChange(e):
+        if rtAutoScSwitch.value:
+            lv.auto_scroll=False
+            await page.client_storage.set_async("isAutoSc", False)
+        else:
+            lv.auto_scroll=True
+            await page.client_storage.set_async("isAutoSc", True)
+        await lv.update_async()
+
+    if await page.client_storage.contains_key_async("isAutoSc") == True:
+        rtAutoScSwitch=ft.Switch(label="自動スクロール", on_change=rtAutoScChange, value=await page.client_storage.get_async("isAutoSc"))
+    else:
+        rtAutoScSwitch=ft.Switch(label="自動スクロール", on_change=rtRenderChange, value=False)
 
     ################################
     ### Snackbar
@@ -283,7 +318,7 @@ async def main(page: Page):
         for i in range(0, 9):
             realtimeData[i].value=resList[i]
             # rtNowData[i].on_click=lambda e: pyperclip.copy(resList[i])
-        global recordStartTime, recordStartAltitude, recordStatus, recordDataStatus, recordRawData, recordDateTime, recordBaloonName, isRecordStop
+        global recordStartTime, recordTime, recordStartAltitude, recordStatus, recordDataStatus, recordRawData, recordDateTime, recordBaloonName, isRecordStop
         if isRecordStop==False:
             if recordStartTime==-1.00:
                 recordStartTime=resListFloat[0]
@@ -298,35 +333,56 @@ async def main(page: Page):
             recordListFloat=copy.deepcopy(resListFloat)
             recordListFloat[0]=round(resListFloat[0]-recordStartTime,2)
             recordListFloat[4]=round(resListFloat[4]-recordStartAltitude,1)
-            b=ft.DataRow(
-                    cells=[
-                        ft.DataCell(ft.Text(recordList[0], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[0])),
-                        ft.DataCell(ft.Text(recordList[1], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[1])),
-                        ft.DataCell(ft.Text(recordList[2], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[2])),
-                        ft.DataCell(ft.Text(recordList[3], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[3])),
-                        ft.DataCell(ft.Text(recordList[4], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[4])),
-                        ft.DataCell(ft.Text(recordList[5], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[5])),
-                        ft.DataCell(ft.Text(recordList[6], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[6])),
-                        ft.DataCell(ft.Text(recordList[7], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[7])),
-                        ft.DataCell(ft.Text(recordList[8], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[8])),
-                        ])
-            # table.rows.append(b) kx
-            r_time.append(recordListFloat[0])
-            r_temp.append(recordListFloat[1])
-            r_pressure.append(recordListFloat[2])
-            r_humidity.append(recordListFloat[3])
-            r_altitude.append(recordListFloat[4])
-            r_a0.append(recordListFloat[5])
-            r_a1.append(recordListFloat[6])
-            r_a2.append(recordListFloat[7])
-            r_a3.append(recordListFloat[8])
-            recordRawData+=', '.join(recordList)+"\n"
-            rawRecorddata_tx.value=recordRawData
+            if recordStatus == False and recordListFloat[0]>float(recordTime):
+                isRecordStop = True
+                recordSaveButton.disabled=False #
+                recordDeleteButton.disabled=False #
+                recordDeleteTitle.color="red" #
+                recordDeleteText.color="red" #
+                recordDeleteIcon.color="red" #
+                recordStartTitle.value="記録スタート"
+                recordStartText.value="離陸時にクリック"
+                recordStartTitle.color=None
+                recordStartText.color=None
+                recordStartIcon.name=ft.icons.RADIO_BUTTON_CHECKED
+                recordStartButton.on_click=recordStart
+                await recordStartTitle.update_async()
+                await recordStartText.update_async()
+                await recordStartIcon.update_async()
+                await recordSaveButton.update_async()
+                await recordDeleteButton.update_async()
+                await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
+                await openSnackbar("測定データの取得が完了しました。")
+            else:
+                b=ft.DataRow(
+                        cells=[
+                            ft.DataCell(ft.Text(recordList[0], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[0])),
+                            ft.DataCell(ft.Text(recordList[1], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[1])),
+                            ft.DataCell(ft.Text(recordList[2], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[2])),
+                            ft.DataCell(ft.Text(recordList[3], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[3])),
+                            ft.DataCell(ft.Text(recordList[4], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[4])),
+                            ft.DataCell(ft.Text(recordList[5], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[5])),
+                            ft.DataCell(ft.Text(recordList[6], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[6])),
+                            ft.DataCell(ft.Text(recordList[7], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[7])),
+                            ft.DataCell(ft.Text(recordList[8], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[8])),
+                            ])
+                # table.rows.append(b) kx
+                r_time.append(recordListFloat[0])
+                r_temp.append(recordListFloat[1])
+                r_pressure.append(recordListFloat[2])
+                r_humidity.append(recordListFloat[3])
+                r_altitude.append(recordListFloat[4])
+                r_a0.append(recordListFloat[5])
+                r_a1.append(recordListFloat[6])
+                r_a2.append(recordListFloat[7])
+                r_a3.append(recordListFloat[8])
+                recordRawData+=', '.join(recordList)+"\n"
+                rawRecorddata_tx.value=recordRawData
 
-            for i in range(0, 9):
-                rtNowData[i].value=recordList[i]
-            await table_column.update_async()
-            await rawRecorddata_tx.update_async()
+                for i in range(0, 9):
+                    rtNowData[i].value=recordList[i]
+                await table_column.update_async()
+                await rawRecorddata_tx.update_async()
             # await table.update_async() kx
         await realtimeTable.update_async()
         await realtimeRecordTable.update_async()
@@ -334,6 +390,7 @@ async def main(page: Page):
         await page.update_async()
         # rtNowData[0].value=resList[0]
         # rtNowData[0].on_click=lambda e: pyperclip.copy(resList[0])
+
         time.append(resListFloat[0])
         temp.append(resListFloat[1])
         pressure.append(resListFloat[2])
@@ -343,12 +400,13 @@ async def main(page: Page):
         a1.append(resListFloat[6])
         a2.append(resListFloat[7])
         a3.append(resListFloat[8])
-        await realtimeGraphSystem.set(time=time[-100:], temp=temp[-100:], pressure=pressure[-100:], humidity=humidity[-100:], altitude=altitude[-100:], a0=a0[-100:], a1=a1[-100:], a2=a2[-100:], a3=a3[-100:])
+
+        if rtRenderSwitch.value:
+            await realtimeGraphSystem.set(time=time[-100:], temp=temp[-100:], pressure=pressure[-100:], humidity=humidity[-100:], altitude=altitude[-100:], a0=a0[-100:], a1=a1[-100:], a2=a2[-100:], a3=a3[-100:])
 
         # if recordStatus:
         #     await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
 
-        await page.update_async()
         
         #print(resList)
         
@@ -449,13 +507,15 @@ async def main(page: Page):
                 if connectStatus==False:
                     # await setuzokuStatusView.update_async()
                     break
-                if recordStatus==False:
-                    isRecordStop=True
-                else:
+                # if recordStatus==False:
+                #     isRecordStop=True
+                # else:
+                #     isRecordStop=False
+                if recordStatus==True:
                     isRecordStop=False
                 if not line:
                     continue
-                print(line)
+                # print(line)
                 await event_listener(line)
 
                 # if line.startswith('data:'):
@@ -498,8 +558,24 @@ async def main(page: Page):
         setuzokuStartButton.text="接続開始"
         setuzokusaki.disabled=False
         setuzokuStartButton.disabled=False
+        isRecordStop = True
+        recordSaveButton.disabled=False #
+        recordDeleteButton.disabled=False #
+        recordDeleteTitle.color="red" #
+        recordDeleteText.color="red" #
+        recordDeleteIcon.color="red" #
+        recordStartTitle.value="記録スタート"
+        recordStartText.value="離陸時にクリック"
+        recordStartTitle.color=None
+        recordStartText.color=None
+        recordStartIcon.name=ft.icons.RADIO_BUTTON_CHECKED
         recordStartButton.disabled=True
-        await recordStartButton.update_async()
+        recordStartButton.on_click=recordStart
+        await recordStartTitle.update_async()
+        await recordStartText.update_async()
+        await recordStartIcon.update_async()
+        await recordSaveButton.update_async()
+        await recordDeleteButton.update_async()
         # await countupTimer.stop()
         page.window_resizable=True
         page.splash = None
@@ -680,22 +756,12 @@ async def main(page: Page):
     else:
         setuzokusaki=ElevatedButton(f"接続先: {await view_hontai_ip()}", on_click=open_settings, disabled=connectStatus)
         setuzokuStartButton=ElevatedButton(f"接続開始", on_click=connectPC, disabled=connectStatus)
-        
-    async def rtAutoScChange(e):
-        if rtAutoScSwitch.value:
-            lv.auto_scroll=False
-        else:
-            lv.auto_scroll=True
-        await lv.update_async()
-        
-    rtAutoScSwitch=ft.Switch(label="自動スクロール(OFF推奨)", on_change=rtAutoScChange, value=False)
     
     setuzokuStopButton=ElevatedButton(f"接続終了", on_click=disconnectPC, disabled=True)
     rtResetButton=ft.ElevatedButton(text="リセット", on_click=open_resetAlert, data=0)
     # countupTimer=Countup(0)
     await page.add_async(
-        AppBar(
-                        title=ft.Row(
+                        ft.Row(
                                 spacing=5,
                                 controls=[
                                     # Text("EBDAS"),
@@ -709,15 +775,12 @@ async def main(page: Page):
                                     setuzokuStartButton,
                                     setuzokuStopButton,
                                     rtResetButton,
-
+                                    rtRenderSwitch,
+                                    rtAutoScSwitch
                                     # ft.Text("接続時間:"),
                                     
                                 ],
-                            ),
-                        actions=[
-                            
-                        ]
-                    )
+                            )
     )
     
     async def close_dlg(e):
@@ -1113,10 +1176,11 @@ async def main(page: Page):
         )
 
     async def recordDelete(e):
-        global connectStatus, recordStatus, recordDataStatus, recordRawData, recordBaloonName, recordDateTime, recordStartTime, recordStartAltitude
+        global recordTime, connectStatus, recordStatus, recordDataStatus, recordRawData, recordBaloonName, recordDateTime, recordStartTime, recordStartAltitude
         if recordStatus == True or recordDataStatus == False:
             await openSnackbar("記録中 または 記録データがありません。")
             return()
+        recordTime=-1.0
         recordStartTime=-1.0
         recordStartAltitude=0.0
         recordStatus=False
@@ -1201,41 +1265,39 @@ async def main(page: Page):
     recordStartIcon = ft.Icon(name=ft.icons.RADIO_BUTTON_CHECKED, color="red")
     
     async def recordStop(e):
-        global recordStopWatchSystem
+        global recordStopWatchSystem, recordTime
         recordTime=recordStopWatchSystem.stop()
         recordStopWatchSystem.reset()
         global connectStatus, recordStatus
         # if connectStatus == False:
         #     return()
         recordStatus = False
-        recordStartButton.on_click=recordStart
+        
         if recordDataStatus:
-            recordSaveButton.disabled=False
-            recordDeleteButton.disabled=False
-            recordDeleteTitle.color="red"
-            recordDeleteText.color="red"
-            recordDeleteIcon.color="red"
             recordTimeView.value=recordTime
         else:
             recordSaveButton.disabled=True
             recordDeleteButton.disabled=True
-        recordStartTitle.value="記録スタート"
-        recordStartText.value="離陸時にクリック"
-        recordStartTitle.color=None
-        recordStartText.color=None
-        recordStartIcon.name=ft.icons.RADIO_BUTTON_CHECKED
+            recordStartTitle.value="記録スタート"
+            recordStartText.value="離陸時にクリック"
+            recordStartTitle.color=None
+            recordStartText.color=None
+            recordStartIcon.name=ft.icons.RADIO_BUTTON_CHECKED
+            recordStartButton.on_click=recordStart
+            await recordStartTitle.update_async()
+            await recordStartText.update_async()
+            await recordStartIcon.update_async()
+            await recordSaveButton.update_async()
+            await recordDeleteButton.update_async()
         recordStartButton.disabled=True
-        await recordStartTitle.update_async()
-        await recordStartText.update_async()
-        await recordStartIcon.update_async()
         await recordStartButton.update_async()
-        await recordSaveButton.update_async()
-        await recordDeleteButton.update_async()
+
         await recordTimeView.update_async()
-        await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
         await page.update_async()
 
     async def recordStart(e):
+        global recordTime, isRecordStop
+        recordTime=-1.0
         recordStopWatchSystem.start()
         global connectStatus, recordStatus
         # if connectStatus == False:

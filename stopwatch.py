@@ -10,10 +10,10 @@ class StopwatchApp:
 
     def stop(self):
         if self.start_time == None:
-            return("-")
+            return("-1.0")
         self.stop_time = time.time()
         self.elapsed_time = self.stop_time - self.start_time
-        return(f"{self.elapsed_time:.3f}sec")
+        return(f"{self.elapsed_time:.3f}")
     
     def reset(self):
         self.start_time = None
