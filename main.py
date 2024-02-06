@@ -473,6 +473,8 @@ async def main(page: Page):
             await page.update_async()
             return()
         await close_banner(e)
+        page.splash = ft.ProgressBar()
+        await page.update_async()
         global connectStatus
         global recordStatus, isRecordStop
         connectStatus=True
@@ -492,7 +494,6 @@ async def main(page: Page):
         await realtimeGraphSystem.reset()
         await setuzokuStartButton.update_async()
         await setuzokusaki.update_async()
-        page.splash = ft.ProgressBar()
         await page.update_async()
 
         try:
@@ -1435,8 +1436,8 @@ async def main(page: Page):
 
     
 
-    # body.append(ft.Row([rtAutoScSwitch, ft.Text("動作が重くなります! 記録は離陸中のみしてください。")], spacing=12))
-    body.append(ft.Row([ft.Text("記録は離陸中のみしてください。正確な記録のために、接続前にリアルタイム描画をオフにしてください。")], spacing=12))
+    # body.append(ft.Row([rtAutoScSwitch, ft.Text("動作が重くなります! 記録は滞空中のみしてください。")], spacing=12))
+    body.append(ft.Row([ft.Text("記録は滞空中のみしてください。正確な記録のために、接続前にリアルタイム描画をオフにしてください。")], spacing=12))
 
 
     await page.add_async(menubaritem)
