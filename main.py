@@ -551,8 +551,12 @@ async def main(page: Page):
     )
     
     async def disconnectPC(e):
+        # global recordStatus
+        # if recordStatus:
+        #     await openSnackbar("記録中のため、接続終了できません。")
+        #     return()
         await recordStop(e)
-        global connectStatus
+        global connectStatus, recordDataStatus
         connectStatus = False
         setuzokuStopButton.disabled=True
         await setuzokuStopButton.update_async()
@@ -560,11 +564,12 @@ async def main(page: Page):
         setuzokusaki.disabled=False
         setuzokuStartButton.disabled=False
         isRecordStop = True
-        recordSaveButton.disabled=False #
-        recordDeleteButton.disabled=False #
-        recordDeleteTitle.color="red" #
-        recordDeleteText.color="red" #
-        recordDeleteIcon.color="red" #
+        if recordDataStatus:
+            recordSaveButton.disabled=False #
+            recordDeleteButton.disabled=False #
+            recordDeleteTitle.color="red" #
+            recordDeleteText.color="red" #
+            recordDeleteIcon.color="red" #
         recordStartTitle.value="記録スタート"
         recordStartText.value="離陸時にクリック"
         recordStartTitle.color=None
