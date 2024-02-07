@@ -712,9 +712,12 @@ async def main(page: Page):
         await page.update_async()
         
     async def rtReset(e):
-        global recordStartTime, recordStatus, recordStartAltitude
+        global recordStartTime, recordStatus, recordStartAltitude, connectStatus
         if recordStatus:
             await openSnackbar("記録中のため、リセットできません。")
+            return()
+        if connectStatus:
+            await openSnackbar("接続中のため、リセットできません。")
             return()
         global recordStopWatchSystem
         recordTime=recordStopWatchSystem.stop()
@@ -771,6 +774,7 @@ async def main(page: Page):
         recordStartButton.disabled=True
         recordSaveButton.disabled=True
         recordDeleteButton.disabled=True
+        await tempGraphSystem.reset()
         bodySide = [ft.Image(src=f"howtoRecord.gif")]
         Tab1.controls=[
             tab1c,
@@ -783,7 +787,6 @@ async def main(page: Page):
             d(bodySide)
         ]
         await Tab1.update_async()
-        await tempGraphSystem.reset()
         await realtimeGraphSystem.reset()
         await close_resetAlert(e)
         # await table.update_async() kx
