@@ -46,12 +46,16 @@ async def main(page: Page):
     # await page.client_storage.clear_async()
     global recordStopWatchSystem
     recordStopWatchSystem=StopwatchApp()
-    global recordStartTime, recordStatus, recordDataStatus, recordStartAltitude, recordTime
+    global recordStartTime, recordListSum, recordListFloatSum, recordStatus, recordDataStatus, recordStartAltitude, recordTime, takeoffTime, takeoffRecordStartTime
     recordStartTime=-1.0
+    takeoffRecordStartTime=-1.0
+    takeoffTime=-1.0
     recordStartAltitude=0.0
     recordStatus=False
     recordDataStatus=False
     recordTime=-1
+    recordListSum=[]
+    recordListFloatSum=[]
     
     ################################
     ### realtimeRenderSwitch
@@ -251,10 +255,9 @@ async def main(page: Page):
     global bannerContents
     bannerContents=ft.Text("")
 
-    global isRecordStop
+    global isRecordStop, isChargeCompleted
     isRecordStop=True
-    
-
+    isChargeCompleted=False
 
     table=ft.DataTable(
         heading_row_height=0,
@@ -318,42 +321,69 @@ async def main(page: Page):
         for i in range(0, 9):
             realtimeData[i].value=resList[i]
             # rtNowData[i].on_click=lambda e: pyperclip.copy(resList[i])
-        global recordStartTime, recordTime, recordStartAltitude, recordStatus, recordDataStatus, recordRawData, recordDateTime, recordBaloonName, isRecordStop
+        global recordStartTime, takeoffRecordStartTime, takeoffTime, isChargeCompleted, recordListFloatSum, recordListSum, recordTime, recordStartAltitude, recordStatus, recordDataStatus, recordRawData, recordDateTime, recordBaloonName, isRecordStop
         if isRecordStop==False:
             if recordStartTime==-1.00:
                 recordStartTime=resListFloat[0]
-                recordStartAltitude=resListFloat[4]
                 recordRawData+="time[sec], temperature[degC], pressure[hPa], humidity[%], altitude[m], a0, a1, a2, a3\n"
                 recordBaloonName=baloonSelecter.value
                 recordDateTime=copy.deepcopy(dt_now.strftime('%Y-%m-%d_%H-%M-%S'))
             recordDataStatus = True
             recordList=copy.deepcopy(resList)
             recordList[0]='{:.2f}'.format(resListFloat[0]-recordStartTime)
-            recordList[4]='{:.1f}'.format(resListFloat[4]-recordStartAltitude)
+            recordList[4]='{:.1f}'.format(resListFloat[4])
             recordListFloat=copy.deepcopy(resListFloat)
             recordListFloat[0]=round(resListFloat[0]-recordStartTime,2)
-            recordListFloat[4]=round(resListFloat[4]-recordStartAltitude,1)
+            recordListFloat[4]=round(resListFloat[4],1)
+            if isChargeCompleted and recordListFloat[0]>float(takeoffTime) and takeoffRecordStartTime==-1.0:
+                    takeoffRecordStartTime=resListFloat[0]
+                    recordStartAltitude=resListFloat[4]
             if recordStatus == False and recordListFloat[0]>float(recordTime):
                 isRecordStop = True
+                recordRawData="time[sec], temperature[degC], pressure[hPa], humidity[%], altitude[m], a0, a1, a2, a3\n"
+                for i in range(len(recordListFloatSum)):
+                    tempRecordListFloat = recordListFloatSum[i]
+                    tempRecordListFloat[0]=tempRecordListFloat[0]-takeoffRecordStartTime+recordStartTime
+                    tempRecordListFloat[4]=tempRecordListFloat[4]-recordStartAltitude
+                    tempRecordList = ['{:.1f}'.format(k) for k in tempRecordListFloat]
+                    tempRecordList[0] = '{:.2f}'.format(tempRecordListFloat[0])
+                    recordListFloatSum.append(tempRecordListFloat)
+                    recordListSum.append(tempRecordList)
+                    r_time.append(tempRecordListFloat[0])
+                    r_temp.append(tempRecordListFloat[1])
+                    r_pressure.append(tempRecordListFloat[2])
+                    r_humidity.append(tempRecordListFloat[3])
+                    r_altitude.append(tempRecordListFloat[4])
+                    r_a0.append(tempRecordListFloat[5])
+                    r_a1.append(tempRecordListFloat[6])
+                    r_a2.append(tempRecordListFloat[7])
+                    r_a3.append(tempRecordListFloat[8])
+                    recordRawData+=', '.join(tempRecordList)+"\n"
+                rawRecorddata_tx.value=recordRawData
+                
                 recordSaveButton.disabled=False #
                 recordDeleteButton.disabled=False #
                 recordDeleteTitle.color="red" #
                 recordDeleteText.color="red" #
                 recordDeleteIcon.color="red" #
                 recordStartTitle.value="記録スタート"
-                recordStartText.value="離陸時にクリック"
+                recordStartText.value="気体充填開始"
                 recordStartTitle.color=None
                 recordStartText.color=None
                 recordStartIcon.name=ft.icons.RADIO_BUTTON_CHECKED
+                recordStartIcon.color="red"
                 recordStartButton.on_click=recordStart
                 await recordStartTitle.update_async()
                 await recordStartText.update_async()
                 await recordStartIcon.update_async()
                 await recordSaveButton.update_async()
                 await recordDeleteButton.update_async()
+                await rawRecorddata_tx.update_async()
                 await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
                 await openSnackbar("測定データの取得が完了しました。")
             else:
+                recordListSum.append(recordList)
+                recordListFloatSum.append(recordListFloat)
                 b=ft.DataRow(
                         cells=[
                             ft.DataCell(ft.Text(recordList[0], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[0])),
@@ -367,15 +397,15 @@ async def main(page: Page):
                             ft.DataCell(ft.Text(recordList[8], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(recordList[8])),
                             ])
                 # table.rows.append(b) kx
-                r_time.append(recordListFloat[0])
-                r_temp.append(recordListFloat[1])
-                r_pressure.append(recordListFloat[2])
-                r_humidity.append(recordListFloat[3])
-                r_altitude.append(recordListFloat[4])
-                r_a0.append(recordListFloat[5])
-                r_a1.append(recordListFloat[6])
-                r_a2.append(recordListFloat[7])
-                r_a3.append(recordListFloat[8])
+                # r_time.append(recordListFloat[0])
+                # r_temp.append(recordListFloat[1])
+                # r_pressure.append(recordListFloat[2])
+                # r_humidity.append(recordListFloat[3])
+                # r_altitude.append(recordListFloat[4])
+                # r_a0.append(recordListFloat[5])
+                # r_a1.append(recordListFloat[6])
+                # r_a2.append(recordListFloat[7])
+                # r_a3.append(recordListFloat[8])
                 recordRawData+=', '.join(recordList)+"\n"
                 rawRecorddata_tx.value=recordRawData
 
@@ -491,6 +521,17 @@ async def main(page: Page):
         a1.clear()
         a2.clear()
         a3.clear()
+        bodySide = [tempGraphSystem]
+        Tab1.controls=[
+            tab1c,
+            ft.GestureDetector(
+                content=ft.VerticalDivider(),
+                drag_interval=10,
+                on_pan_update=move_vertical_divider,
+                on_hover=show_draggable_cursor,
+            ),
+            d(bodySide)
+        ]
         await realtimeGraphSystem.reset()
         await setuzokuStartButton.update_async()
         await setuzokusaki.update_async()
@@ -571,7 +612,7 @@ async def main(page: Page):
             recordDeleteText.color="red" #
             recordDeleteIcon.color="red" #
         recordStartTitle.value="記録スタート"
-        recordStartText.value="離陸時にクリック"
+        recordStartText.value="気体充填開始"
         recordStartTitle.color=None
         recordStartText.color=None
         recordStartIcon.name=ft.icons.RADIO_BUTTON_CHECKED
@@ -683,6 +724,16 @@ async def main(page: Page):
         global rawResponseData, recordRawData, recordDataStatus
         realtimeRecordTable.rows.clear()
         # table.rows.clear() kx
+        global takeoffRecordStartTime, takeoffTime, recordListSum, recordListFloatSum, isChargeCompleted
+        takeoffRecordStartTime=-1.0
+        takeoffTime=-1.0
+        recordListSum=[]
+        recordListFloatSum=[]
+        isChargeCompleted=False
+        chargeTimeView.value="-"
+        airTimeView.value="-"
+        await chargeTimeView.update_async()
+        await airTimeView.update_async()
         time.clear()
         temp.clear()
         pressure.clear()
@@ -720,6 +771,18 @@ async def main(page: Page):
         recordStartButton.disabled=True
         recordSaveButton.disabled=True
         recordDeleteButton.disabled=True
+        bodySide = [ft.Image(src=f"howtoRecord.gif")]
+        Tab1.controls=[
+            tab1c,
+            ft.GestureDetector(
+                content=ft.VerticalDivider(),
+                drag_interval=10,
+                on_pan_update=move_vertical_divider,
+                on_hover=show_draggable_cursor,
+            ),
+            d(bodySide)
+        ]
+        await Tab1.update_async()
         await tempGraphSystem.reset()
         await realtimeGraphSystem.reset()
         await close_resetAlert(e)
@@ -764,7 +827,7 @@ async def main(page: Page):
         setuzokuStartButton=ElevatedButton(f"接続開始", on_click=connectPC, disabled=connectStatus)
     
     setuzokuStopButton=ElevatedButton(f"接続終了", on_click=disconnectPC, disabled=True)
-    rtResetButton=ft.ElevatedButton(text="リセット", on_click=open_resetAlert, data=0)
+    rtResetButton=ft.ElevatedButton(text="リセット", on_click=rtReset, data=0)
     # countupTimer=Countup(0)
     await page.add_async(
                         ft.Row(
@@ -885,6 +948,8 @@ async def main(page: Page):
         await get_directory_dialog.get_directory_path_async(dialog_title="測定したデータを保存するディレクトリを選択してください。")
     
     recordTimeView = ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
+    chargeTimeView = ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
+    airTimeView = ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
     
     menubar = ft.MenuBar(
         expand=True,
@@ -1024,7 +1089,13 @@ async def main(page: Page):
                 # ],
             ),
             ft.SubmenuButton(
-                content=ft.Row([ft.Text("記録時間 :"), recordTimeView], )
+                content=ft.Row([ft.Text("記録時間:"), recordTimeView], )
+            ),
+            ft.SubmenuButton(
+                content=ft.Row([ft.Text("充填時間:"), chargeTimeView], )
+            ),
+            ft.SubmenuButton(
+                content=ft.Row([ft.Text("滞空時間:"), airTimeView], )
             ),
         ],
     )
@@ -1198,6 +1269,14 @@ async def main(page: Page):
         recordDeleteIcon.color=None
         await recordDeleteButton.update_async()
         await recordSaveButton.update_async()
+        global takeoffRecordStartTime, takeoffTime, recordListSum, recordListFloatSum, isChargeCompleted
+        takeoffRecordStartTime=-1.0
+        takeoffTime=-1.0
+        recordListSum=[]
+        recordListFloatSum=[]
+        isChargeCompleted=False
+        chargeTimeView.value="-"
+        airTimeView.value="-"
 
         # table.rows.clear() kx
         r_time.clear()
@@ -1226,6 +1305,8 @@ async def main(page: Page):
         recordStopWatchSystem.reset()
         recordTimeView.value="-"
         await recordTimeView.update_async()
+        await chargeTimeView.update_async()
+        await airTimeView.update_async()
         await recordDeleteTitle.update_async()
         await recordDeleteText.update_async()
         await recordDeleteIcon.update_async()
@@ -1267,7 +1348,7 @@ async def main(page: Page):
 
         
     recordStartTitle = ft.Text(value="記録スタート", size=20)
-    recordStartText = ft.Text(value="離陸時にクリック")
+    recordStartText = ft.Text(value="気体充填開始")
     recordStartIcon = ft.Icon(name=ft.icons.RADIO_BUTTON_CHECKED, color="red")
     
     async def recordStop(e):
@@ -1281,11 +1362,13 @@ async def main(page: Page):
         
         if recordDataStatus:
             recordTimeView.value=recordTime
+            airTimeView.value="{:.3f}".format(float(recordTime)-float(takeoffTime))
+            
         else:
             recordSaveButton.disabled=True
             recordDeleteButton.disabled=True
             recordStartTitle.value="記録スタート"
-            recordStartText.value="離陸時にクリック"
+            recordStartText.value="気体充填開始"
             recordStartTitle.color=None
             recordStartText.color=None
             recordStartIcon.name=ft.icons.RADIO_BUTTON_CHECKED
@@ -1300,25 +1383,50 @@ async def main(page: Page):
 
         await recordTimeView.update_async()
         await page.update_async()
-
-    async def recordStart(e):
-        global recordTime, isRecordStop
-        recordTime=-1.0
-        recordStopWatchSystem.start()
-        global connectStatus, recordStatus
-        # if connectStatus == False:
-        #     return()
-        recordStatus = True
+    
+    async def takeoff(e):
+        global recordStatus, isChargeCompleted, takeoffTime
+        if recordStatus == False:
+            await openSnackbar("記録中ではありません。")
+            return()
+        takeoffTime = recordStopWatchSystem.takeoff()
+        isChargeCompleted=True
+        chargeTimeView.value=takeoffTime
         recordStartButton.on_click=recordStop
         recordStartTitle.value="記録ストップ"
         recordStartText.value="着陸時にクリック"
         recordStartTitle.color="red"
         recordStartText.color="red"
         recordStartIcon.name=ft.icons.STOP
+        recordStartIcon.color="red"
         await recordStartTitle.update_async()
         await recordStartText.update_async()
         await recordStartIcon.update_async()
-        recordTimeView.value="記録中"
+        await chargeTimeView.update_async()
+        recordTimeView.value="滞空中"
+        await recordTimeView.update_async()
+        await page.update_async()
+
+    async def recordStart(e):
+        global recordTime, isRecordStop, bodySide, isChargeCompleted
+        recordTime=-1.0
+        recordStopWatchSystem.start()
+        global connectStatus, recordStatus
+        # if connectStatus == False:
+        #     return()
+        recordStatus = True
+        isChargeCompleted = False
+
+        recordStartButton.on_click=takeoff
+        recordStartTitle.value="離陸！"
+        recordStartText.value="離陸時にクリック"
+        recordStartIcon.name=ft.icons.AIRPLANEMODE_ACTIVE
+        recordStartIcon.color=None
+        await recordStartTitle.update_async()
+        await recordStartText.update_async()
+        await recordStartIcon.update_async()
+        await tab1c.update_async()
+        recordTimeView.value="温風充填中"
         await recordTimeView.update_async()
         await page.update_async()
 
@@ -1458,8 +1566,15 @@ async def main(page: Page):
     rawdata_tx=ft.TextField(hint_text="Raw data", border=ft.InputBorder.NONE, filled=True, multiline=True,min_lines=16,max_lines=16,  read_only=True, value="")
     
     tempGraphSystem= tempGraph()
-    bodySide.append(tempGraphSystem)
+    bodySide.append(ft.Image(
+        src=f"howtoRecord.gif",
+        # width=100,
+        # height=40,
+        # fit=ft.ImageFit.FIT_HEIGHT,
+    ))
+    # bodySide.append(tempGraphSystem)
     
+
     realtimeGraphSystem= tempGraph()
     rtTabSide.append(realtimeGraphSystem)
     
