@@ -46,7 +46,7 @@ async def main(page: Page):
     # await page.client_storage.clear_async()
     global recordStopWatchSystem
     recordStopWatchSystem=StopwatchApp()
-    global recordStartTime, recordListSum, recordListFloatSum, recordStatus, recordDataStatus, recordStartAltitude, recordTime, takeoffTime, takeoffRecordStartTime
+    global recordStartTime, resetFlag, recordListSum, recordListFloatSum, recordStatus, recordDataStatus, recordStartAltitude, recordTime, takeoffTime, takeoffRecordStartTime
     recordStartTime=-1.0
     takeoffRecordStartTime=-1.0
     takeoffTime=-1.0
@@ -56,6 +56,7 @@ async def main(page: Page):
     recordTime=-1
     recordListSum=[]
     recordListFloatSum=[]
+    resetFlag=True
     
     ################################
     ### realtimeRenderSwitch
@@ -505,7 +506,7 @@ async def main(page: Page):
         await close_banner(e)
         page.splash = ft.ProgressBar()
         await page.update_async()
-        global connectStatus
+        global connectStatus, resetFlag
         global recordStatus, isRecordStop
         connectStatus=True
         setuzokuStartButton.text="接続中..."
@@ -532,6 +533,7 @@ async def main(page: Page):
             ),
             d(bodySide)
         ]
+        resetFlag=False
         await realtimeGraphSystem.reset()
         await setuzokuStartButton.update_async()
         await setuzokusaki.update_async()
@@ -712,7 +714,7 @@ async def main(page: Page):
         await page.update_async()
         
     async def rtReset(e):
-        global recordStartTime, recordStatus, recordStartAltitude, connectStatus
+        global recordStartTime, recordStatus, recordStartAltitude, connectStatus, resetFlag
         if recordStatus:
             await openSnackbar("記録中のため、リセットできません。")
             return()
@@ -774,19 +776,21 @@ async def main(page: Page):
         recordStartButton.disabled=True
         recordSaveButton.disabled=True
         recordDeleteButton.disabled=True
-        await tempGraphSystem.reset()
-        bodySide = [ft.Image(src=f"howtoRecord.gif")]
-        Tab1.controls=[
-            tab1c,
-            ft.GestureDetector(
-                content=ft.VerticalDivider(),
-                drag_interval=10,
-                on_pan_update=move_vertical_divider,
-                on_hover=show_draggable_cursor,
-            ),
-            d(bodySide)
-        ]
-        await Tab1.update_async()
+        if resetFlag == False:
+            await tempGraphSystem.reset()
+            bodySide = [ft.Image(src=f"howtoRecord.gif")]
+            Tab1.controls=[
+                tab1c,
+                ft.GestureDetector(
+                    content=ft.VerticalDivider(),
+                    drag_interval=10,
+                    on_pan_update=move_vertical_divider,
+                    on_hover=show_draggable_cursor,
+                ),
+                d(bodySide)
+            ]
+            await Tab1.update_async()
+        resetFlag=True
         await realtimeGraphSystem.reset()
         await close_resetAlert(e)
         # await table.update_async() kx
