@@ -46,7 +46,7 @@ async def main(page: Page):
     # await page.client_storage.clear_async()
     global recordStopWatchSystem
     recordStopWatchSystem=StopwatchApp()
-    global recordStartTime, resetFlag, recordListSum, recordListFloatSum, recordStatus, recordDataStatus, recordStartAltitude, recordTime, takeoffTime, takeoffRecordStartTime
+    global recordStartTime, resetFlag, recordListSum, tempGraphSystem, recordListFloatSum, recordStatus, recordDataStatus, recordStartAltitude, recordTime, takeoffTime, takeoffRecordStartTime
     recordStartTime=-1.0
     takeoffRecordStartTime=-1.0
     takeoffTime=-1.0
@@ -57,6 +57,24 @@ async def main(page: Page):
     recordListSum=[]
     recordListFloatSum=[]
     resetFlag=True
+    
+    ################################
+    ### Page System
+    ################################
+    
+    page.title = "EBDAS - Ehime Baloon Data Analyze System"
+    body=[]
+    bodySide=[]
+    rtTab=[]
+    rtTabSide=[]
+    
+    tempGraphSystem= tempGraph()
+    bodySide.append(ft.Image(
+        src=f"howtoRecord.gif",
+        # width=100,
+        # height=40,
+        # fit=ft.ImageFit.FIT_HEIGHT,
+    ))
     
     ################################
     ### realtimeRenderSwitch
@@ -304,7 +322,7 @@ async def main(page: Page):
         #DataRow 
         )
     async def addRealtimeData(resList, resListFloat):
-        global rawResponseData
+        global rawResponseData, tempGraphSystem
         b=ft.DataRow(
                 cells=[
                     ft.DataCell(ft.Text(resList[0], selectable=True, max_lines=1, no_wrap=True, size=16), on_tap=lambda e: pyperclip.copy(resList[0])),
@@ -380,6 +398,8 @@ async def main(page: Page):
                 await recordSaveButton.update_async()
                 await recordDeleteButton.update_async()
                 await rawRecorddata_tx.update_async()
+                bodySide = [tempGraphSystem]
+                await Tab1.update_async()
                 await tempGraphSystem.set(time=r_time, temp=r_temp, pressure=r_pressure, humidity=r_humidity, altitude=r_altitude, a0=r_a0, a1=r_a1, a2=r_a2, a3=r_a3)
                 await openSnackbar("測定データの取得が完了しました。")
             else:
@@ -692,15 +712,7 @@ async def main(page: Page):
     #         self.countup = ft.Text()
     #         return self.countup
 
-    ################################
-    ### Page System
-    ################################
-    
-    page.title = "EBDAS - Ehime Baloon Data Analyze System"
-    body=[]
-    bodySide=[]
-    rtTab=[]
-    rtTabSide=[]
+
 
     # print("Initial route:", page.route)
 
@@ -1276,7 +1288,7 @@ async def main(page: Page):
         recordDeleteIcon.color=None
         await recordDeleteButton.update_async()
         await recordSaveButton.update_async()
-        global takeoffRecordStartTime, takeoffTime, recordListSum, recordListFloatSum, isChargeCompleted
+        global takeoffRecordStartTime, takeoffTime, recordListSum, recordListFloatSum, isChargeCompleted, tempGraphSystem
         takeoffRecordStartTime=-1.0
         takeoffTime=-1.0
         recordListSum=[]
@@ -1304,7 +1316,6 @@ async def main(page: Page):
             recordStartButton.disabled=False
         else:
             recordStartButton.disabled=True
-        await tempGraphSystem.reset()
         # await table.update_async() kx
 
         global recordStopWatchSystem
@@ -1323,6 +1334,9 @@ async def main(page: Page):
         await recordSaveButton.update_async()
         await recordDeleteButton.update_async()
         await rawRecorddata_tx.update_async()
+        bodySide = [tempGraphSystem]
+        await Tab1.update_async()
+        await tempGraphSystem.reset()
         await page.update_async()
         
     recordDeleteTitle = ft.Text(value="一時データ削除", size=20)
@@ -1572,13 +1586,7 @@ async def main(page: Page):
     
     rawdata_tx=ft.TextField(hint_text="Raw data", border=ft.InputBorder.NONE, filled=True, multiline=True,min_lines=16,max_lines=16,  read_only=True, value="")
     
-    tempGraphSystem= tempGraph()
-    bodySide.append(ft.Image(
-        src=f"howtoRecord.gif",
-        # width=100,
-        # height=40,
-        # fit=ft.ImageFit.FIT_HEIGHT,
-    ))
+
     # bodySide.append(tempGraphSystem)
     
 
