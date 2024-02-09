@@ -4,3 +4,4 @@ numpy
 requests
 pyperclip
 PyInstaller
+japanize_matplotlib
