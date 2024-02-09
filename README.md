@@ -26,11 +26,12 @@ You can use builded software(.exe) in [Releases](https://github.com/mkato77/EBDA
 - requests
 - pyperclip
 - pyinstaller
+- japanize_matplotlib
 
 To install the required packages, run the following command:
 
 ```
-pip install flet matplotlib numpy requests pyperclip pyinstaller
+pip install -r requirements.txt
 ```
 
 ### Usage
