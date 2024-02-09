@@ -9,6 +9,9 @@ __pycache__/
 # Draft
 draft/
 
+# Arduino IDE files
+esp32s3/
+
 # Distribution / packaging
 .Python
 build/
