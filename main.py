@@ -16,7 +16,7 @@ import sqlite3
 
 dt_now = datetime.datetime.now()
 
-os.environ["FLET_WS_MAX_MESSAGE_SIZE"] = "8000000"
+os.environ["FLET_WS_MAX_MESSAGE_SIZE"] = "16000000"
 
 async def main(page: Page):
     ################################
@@ -130,6 +130,9 @@ async def main(page: Page):
     ## Folder Pickup System
     ###################
     
+    global dir_path
+    dir_path=None
+    
     # Open directory dialog
     async def get_directory_result(e: ft.FilePickerResultEvent):
         directory_path = e.path if e.path else ""
@@ -175,7 +178,7 @@ async def main(page: Page):
                     conn = sqlite3.connect(dbname)
                     cur = conn.cursor()
                     cur.execute(
-                        "CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, baloon TEXT, weight INTEGER, datetime TEXT, recordTime REAL, chargeTime REAL, airTime REAL, temperature_ave REAL, pressure_init REAL, humidity_init REAL, altitude_max REAL, a_ave_init REAL, a0_max REAL, a1_max REAL, a2_max REAL, a3_max REAL, rawdata TEXT)"
+                        "CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, baloon TEXT, weight INTEGER, datetime TEXT, recordLocation TEXT, recordTime REAL, chargeTime REAL, airTime REAL, temperature_ave REAL, pressure_init REAL, humidity_init REAL, altitude_max REAL, a_ave_init REAL, a0_max REAL, a1_max REAL, a2_max REAL, a3_max REAL, a0_location TEXT, a1_location TEXT, a2_location TEXT, a3_location TEXT, rawdata TEXT, recordNote TEXT)"
                     )
                     conn.commit()
                     conn.close()
@@ -221,19 +224,20 @@ async def main(page: Page):
         await page.client_storage.set_async("baloon", baloonSelecter.value)
 
     async def add_clicked(e):
+        global dir_path
         if not option_textbox.value:
             option_textbox.error_text = "入力してください。"
             await page.update_async()
             return()
         option_textbox.error_text = ""
-        if await page.client_storage.contains_key_async("directory_path") == False or await page.client_storage.get_async("directory_path")=="":
+        if dir_path==None:
             page.banner.content=ft.Column(spacing=0, controls=[ft.Text("データの保存先が未指定です。", theme_style=ft.TextThemeStyle.TITLE_LARGE), ft.Text("ファイル＞ディレクトリを選択 から、測定したデータの保存先を指定してください。")])
             page.banner.open = True
             await page.update_async()
             return()
         newBaloonName=re.sub(r'[\\|/|:|?|.|"|<|>|\|]', '-', option_textbox.value)
         try:
-            os.mkdir(await page.client_storage.get_async("directory_path")+"/"+newBaloonName)
+            os.mkdir(dir_path+"/"+newBaloonName)
         except FileExistsError as e:
             print("FileExistsError")
             await openSnackbar("既にディレクトリが存在します。別の名前を指定してください。")
@@ -279,8 +283,8 @@ async def main(page: Page):
 
 
     async def reloadBaloons(e):
-        if await page.client_storage.contains_key_async("directory_path") == True or await page.client_storage.get_async("directory_path")!="":
-            dir_path=await page.client_storage.get_async("directory_path")
+        global dir_path
+        if dir_path!=None:
             files_dir = [
                 ft.dropdown.Option(f) for f in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, f))
             ]
@@ -299,9 +303,11 @@ async def main(page: Page):
         except FileNotFoundError as e:
             await openSnackbar("ディレクトリが存在しません。再指定してください。: "+str(e))
             await page.client_storage.set_async("directory_path", "")
+            dir_path=None
         except Exception as e:
             await openSnackbar("エラーが発生しました。ディレクトリを再指定してください。: "+str(e))
             await page.client_storage.set_async("directory_path", "")
+            dir_path=None
         else:
             baloonSelecter.options=files_dir
             await initDatabase()
@@ -314,13 +320,16 @@ async def main(page: Page):
     add = ft.ElevatedButton("追加", on_click=add_clicked)
     delete = ft.OutlinedButton("Delete selected", on_click=delete_clicked)
     
-    async def view_hontai_ip():
-        if await page.client_storage.contains_key_async("hontai_ip") == False:
-            return("未設定")
-        elif await page.client_storage.get_async("hontai_ip")=="":
-            return("未設定")
-        else:
-            return(await page.client_storage.get_async("hontai_ip"))
+    global server_url
+    
+    if await page.client_storage.contains_key_async("hontai_ip") == False:
+        server_url = None
+    elif await page.client_storage.get_async("hontai_ip")=="":
+        server_url = None
+    else:
+        server_url = await page.client_storage.get_async("hontai_ip")
+    
+    
         
     async def view_hontai_port():
         if await page.client_storage.contains_key_async("hontai_port") == False:
@@ -587,11 +596,12 @@ async def main(page: Page):
     #             visible=False
     #         )
     async def connectPC(e):
+        global server_url, dir_path
         howtoRecordGuide.visible=False
         await howtoRecordGuide.update_async()
         await tempGraphSystem.setVisibleYes()
         # await countupTimer.reset(seconds=0)
-        if await page.client_storage.contains_key_async("directory_path") == False or await page.client_storage.get_async("directory_path")=="":
+        if dir_path==None:
             page.banner.content=ft.Column(spacing=0, controls=[ft.Text("データの保存先が未指定です。", theme_style=ft.TextThemeStyle.TITLE_LARGE), ft.Text("ファイル＞ディレクトリを選択 から、測定したデータの保存先を指定してください。")])
             page.banner.open = True
             await page.update_async()
@@ -620,11 +630,11 @@ async def main(page: Page):
         await realtimeGraphSystem.reset()
         await setuzokuStartButton.update_async()
         await setuzokusaki.update_async()
-        await page.update_async()
+        # await page.update_async()
+        global bannerContents
 
         try:
-            server_url = await view_hontai_ip()
-            response = requests.get(server_url, stream=True)
+            response = requests.get(server_url, stream=True, timeout=10)
             response.raise_for_status()
             print("\nConnected to server: "+server_url+"\n")
             page.splash = None
@@ -648,14 +658,53 @@ async def main(page: Page):
                 # if line.startswith('data:'):
                 #     data = line[6:]
                 #     event_listener(data)
+
         except requests.exceptions.RequestException as e:
-            global bannerContents
             bannerContents.value=f"エラー内容: {e}"
-            page.banner.content = ft.Column(spacing=0, controls=[ft.Text("測定キットとの接続に失敗しました。", theme_style=ft.TextThemeStyle.TITLE_LARGE), bannerContents])
+            # eにRead timed outが入っている場合、接続がタイムアウトしたと判断
+            if "Read timed out" in str(e):
+                page.banner.content = ft.Column(spacing=0, controls=[ft.Text("測定キットからデータが送られてこなくなりました。", theme_style=ft.TextThemeStyle.TITLE_LARGE), bannerContents])
+            else:    
+                page.banner.content = ft.Column(spacing=0, controls=[ft.Text("測定キットとの接続に失敗しました。", theme_style=ft.TextThemeStyle.TITLE_LARGE), bannerContents])
             page.banner.open = True
-            await page.update_async()
-            await disconnectPC(e)
+            asyncio.create_task(page.update_async())
+            # await disconnectPC(e)
             print(f"Error connecting to the server: {e}")
+            if recordStatus:
+                await recordStop(e)
+            connectStatus = False
+            setuzokuStopButton.disabled=True
+            await setuzokuStopButton.update_async()
+            setuzokuStartButton.text="接続開始"
+            setuzokusaki.disabled=False
+            setuzokuStartButton.disabled=False
+
+            isRecordStop = True
+            if recordDataStatus:
+                recordSaveButton.disabled=False #
+                recordDeleteButton.disabled=False #
+                recordDeleteTitle.color="red" #
+                recordDeleteText.color="red" #
+                recordDeleteIcon.color="red" #
+            recordStartTitle.value="記録スタート"
+            recordStartText.value="気体充填開始"
+            recordStartTitle.color=None
+            recordStartText.color=None
+            recordStartIcon.name=ft.icons.RADIO_BUTTON_CHECKED
+            recordStartButton.disabled=True
+            recordStartButton.on_click=recordStart
+            # await countupTimer.stop()
+            page.window_resizable=True
+            page.splash = None
+            await page.update_async()
+            await recordStartTitle.update_async()
+            await recordStartText.update_async()
+            await recordStartIcon.update_async()
+            await recordSaveButton.update_async()
+            await recordDeleteButton.update_async()
+
+
+
         else:
             setuzokusaki.disabled=False
             setuzokuStartButton.disabled=False
@@ -802,6 +851,8 @@ async def main(page: Page):
         global recordStopWatchSystem
         recordTime=recordStopWatchSystem.stop()
         recordStopWatchSystem.reset()
+        sensorLocationA0.value=None
+        await page.client_storage.remove_async("sensorLocation_a0")
         recordTimeView.value="-"
         await recordTimeView.update_async()
         global rawResponseData, recordRawData, recordDataStatus
@@ -855,6 +906,8 @@ async def main(page: Page):
         recordStartButton.disabled=True
         recordSaveButton.disabled=True
         recordDeleteButton.disabled=True
+        recordNote.value=""
+        
         if resetFlag == False:
             await tempGraphSystem.reset()
             tempGraphSystem.visible=False
@@ -897,11 +950,11 @@ async def main(page: Page):
         await page.update_async()
 
     
-    if await view_hontai_ip()=="未設定":
+    if server_url==None:
         setuzokusaki=ElevatedButton(f"接続先: 未設定です。クリックして設定してください。", on_click=open_settings, disabled=connectStatus)
         setuzokuStartButton=ElevatedButton(f"接続開始", on_click=connectPC, disabled=True)
     else:
-        setuzokusaki=ElevatedButton(f"接続先: {await view_hontai_ip()}", on_click=open_settings, disabled=connectStatus)
+        setuzokusaki=ElevatedButton(f"接続先: {server_url}", on_click=open_settings, disabled=connectStatus)
         setuzokuStartButton=ElevatedButton(f"接続開始", on_click=connectPC, disabled=connectStatus)
     
     setuzokuStopButton=ElevatedButton(f"接続終了", on_click=disconnectPC, disabled=True)
@@ -934,6 +987,7 @@ async def main(page: Page):
         dlg_modal.open = False
         await page.update_async()
     async def save_settings(e):
+        global server_url
         if not txt_hontai_ip.value:
             txt_hontai_ip.error_text = "入力してください。"
             await page.update_async()
@@ -947,12 +1001,13 @@ async def main(page: Page):
         # else:
         #     txt_hontai_port.error_text = ""
         await page.client_storage.set_async("hontai_ip", txt_hontai_ip.value)
+        server_url = txt_hontai_ip.value
         # await page.client_storage.set_async("hontai_port", txt_hontai_port.value)
         setuzokusaki.text=f"接続先: {txt_hontai_ip.value}"
         setuzokusaki.disabled=False
         setuzokuStartButton.disabled=False
         await openSnackbar("設定を保存しました。")
-        await close_dlg(e)
+        dlg_modal.open = False
         await page.update_async()
 
 
@@ -1229,7 +1284,7 @@ async def main(page: Page):
             # ],
         )
         return(datatable)
-    lv0 = ft.ListView(spacing=10, padding=ft.padding.only(left=20, top=10, right=20, bottom=0),)
+    lv0 = ft.ListView(spacing=10, padding=ft.padding.only(left=10, top=0, right=10, bottom=0),)
     realtimeLv = ft.ListView(spacing=10, padding=ft.padding.only(left=20, top=10, right=20, bottom=0),)
 
     
@@ -1307,7 +1362,7 @@ async def main(page: Page):
             conn = sqlite3.connect(dbname)
             cur = conn.cursor()
             takeoffIndex = r_time_str.index("0.00")
-            cur.execute(f'INSERT INTO data(baloon, weight, datetime, recordTime, chargeTime, airTime, temperature_ave, pressure_init, humidity_init, altitude_max, a_ave_init, a0_max, a1_max, a2_max, a3_max, rawdata) values("{baloonSelecter.value}", {weightInput.value}, "{recordDateTime}", {recordTime}, {takeoffTime}, {airTime}, {"{:.2f}".format(sum(r_temp)/len(r_temp))}, {"{:.1f}".format(r_pressure[takeoffIndex])}, {"{:.1f}".format(r_humidity[takeoffIndex])}, {"{:.1f}".format(max(r_altitude[takeoffIndex:]))}, {"{:.2f}".format(sum([r_a0[takeoffIndex]+r_a1[takeoffIndex]+r_a2[takeoffIndex]+r_a3[takeoffIndex]])/4)}, {"{:.1f}".format(max(r_a0[takeoffIndex:]))}, {"{:.1f}".format(max(r_a1[takeoffIndex:]))}, {"{:.1f}".format(max(r_a2[takeoffIndex:]))}, {"{:.1f}".format(max(r_a3[takeoffIndex:]))}, "{recordRawData}")')
+            cur.execute(f'INSERT INTO data(baloon, weight, datetime, recordTime, chargeTime, airTime, temperature_ave, pressure_init, humidity_init, altitude_max, a_ave_init, a0_max, a1_max, a2_max, a3_max, rawdata, recordLocation, a0_location, a1_location, a2_location, a3_location, recordNote) values("{baloonSelecter.value}", {weightInput.value}, "{recordDateTime}", {recordTime}, {takeoffTime}, {airTime}, {"{:.2f}".format(sum(r_temp)/len(r_temp))}, {"{:.1f}".format(r_pressure[takeoffIndex])}, {"{:.1f}".format(r_humidity[takeoffIndex])}, {"{:.1f}".format(max(r_altitude[takeoffIndex:]))}, {"{:.2f}".format(sum([r_a0[takeoffIndex]+r_a1[takeoffIndex]+r_a2[takeoffIndex]+r_a3[takeoffIndex]])/4)}, {"{:.1f}".format(max(r_a0[takeoffIndex:]))}, {"{:.1f}".format(max(r_a1[takeoffIndex:]))}, {"{:.1f}".format(max(r_a2[takeoffIndex:]))}, {"{:.1f}".format(max(r_a3[takeoffIndex:]))}, "{recordRawData}", "{recordLocation.value}", "{sensorLocationA0.value}", "{sensorLocationA1.value}", "{sensorLocationA2.value}", "{sensorLocationA3.value}", "{recordNote.value}")')
             conn.commit()
             cur.close()
             conn.close()
@@ -1599,6 +1654,74 @@ async def main(page: Page):
     )
     body.append(rtBottomMenu)
     
+    # a0, a1, a2, a3それぞれについて、測定場所をドロップダウンから選択できるようにする。選択内容はclient strageに保存する。選択肢：上部、下部、側面、上角、下角、気体充填口、外部、その他
+    sensorLocationSelectOptions = ["上部", "下部", "側面", "上角", "下角", "気体充填口", "外部", "その他"]
+    recordLocationSelectOptions = ["生物実験室", "体育館", "公民館", "一般教室", "会議室", "つくばカピオ", "ホテル部屋", "その他（屋内）", "その他（屋外）"]
+    
+    async def setLocation(e):
+        await page.client_storage.set_async("sensorLocation_"+e.control.label, e.control.value)
+    async def setRecordLocation(e):
+        await page.client_storage.set_async("recordLocation", e.control.value)
+    recordLocation = ft.Dropdown(
+        label="発射場所",
+        options=[ft.dropdown.Option(x) for x in recordLocationSelectOptions],
+        value=await page.client_storage.get_async("recordLocation"),
+        on_change=setRecordLocation,
+        width=190,
+        dense=True,
+    )
+    sensorLocationA0 = ft.Dropdown(
+        label="a0",
+        options=[ft.dropdown.Option(x) for x in sensorLocationSelectOptions],
+        value=await page.client_storage.get_async("sensorLocation_a0"),
+        on_change=setLocation,
+        width=150,
+        dense=True,
+    )
+    sensorLocationA1 = ft.Dropdown(
+        label="a1",
+        options=[ft.dropdown.Option(x) for x in sensorLocationSelectOptions],
+        value=await page.client_storage.get_async("sensorLocation_a1"),
+        on_change=setLocation,
+        width=150,
+        dense=True,
+    )
+    sensorLocationA2 = ft.Dropdown(
+        label="a2",
+        options=[ft.dropdown.Option(x) for x in sensorLocationSelectOptions],
+        value=await page.client_storage.get_async("sensorLocation_a2"),
+        on_change=setLocation,
+        width=150,
+        dense=True,
+    )
+    sensorLocationA3 = ft.Dropdown(
+        label="a3",
+        options=[ft.dropdown.Option(x) for x in sensorLocationSelectOptions],
+        value=await page.client_storage.get_async("sensorLocation_a3"),
+        on_change=setLocation,
+        width=150,
+        dense=True,
+    )
+
+    rtBottomMenu2=ft.Row(
+        spacing=5,
+        alignment=ft.alignment.center,
+        controls=[
+            # Text("EBDAS"),
+            recordLocation,
+            sensorLocationA0,
+            sensorLocationA1,
+            sensorLocationA2,
+            sensorLocationA3,
+        ],
+    )
+    
+    body.append(rtBottomMenu2)
+    
+    # 記録メモText Fieldを追加
+    recordNote=ft.TextField(label="記録メモ", multiline=True,min_lines=2,max_lines=2, value=await page.client_storage.get_async("recordNote"))
+    body.append(recordNote)
+    
     # weightForm=ft.Row(
     #     spacing=5,
     #     alignment=ft.alignment.center,
@@ -1658,7 +1781,7 @@ async def main(page: Page):
     # lv.controls.append(lv0)
     lv.controls.append(table)
     # body.append(lv)
-    rawRecorddata_tx=ft.TextField(hint_text="Record data", border=ft.InputBorder.NONE, filled=True, multiline=True,min_lines=10,max_lines=10,  read_only=True, value="")
+    rawRecorddata_tx=ft.TextField(hint_text="Record data", border=ft.InputBorder.NONE, filled=True, multiline=True,min_lines=9,max_lines=9,  read_only=True, value="")
     body.append(rawRecorddata_tx)
     # await page.add_async(ft.Column(spacing=0, controls=[lv0, lv]))
     async def button_clicked(time):
