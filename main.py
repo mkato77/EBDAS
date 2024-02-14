@@ -1352,8 +1352,8 @@ async def main(page: Page):
             return()
         weightInput.border_color=None
         await weightInput.update_async()
-        fName="EBDAS_"+recordDateTime+"_"+recordBaloonName+".csv"
-        fDir=await page.client_storage.get_async("directory_path")+"/"+recordBaloonName
+        fName="EBDAS_"+recordDateTime+"_"+baloonSelecter.value+".csv"
+        fDir=await page.client_storage.get_async("directory_path")+"/"+baloonSelecter.value
         airTime="{:.3f}".format(float(recordTime)-float(takeoffTime))
         if isDbConnected == False:
             await openSnackbar("データベースに接続していません。")
@@ -1460,6 +1460,7 @@ async def main(page: Page):
         r_a3.clear()
         recordRawData=""
         rawRecorddata_tx.value=""
+        recordNote.value=""
         for i in range(0, 9):
             rtNowData[i].value="-"
             rtNowData[i].on_click=lambda e: pyperclip.copy("-")
@@ -1485,7 +1486,7 @@ async def main(page: Page):
         await recordSaveButton.update_async()
         await recordDeleteButton.update_async()
         await rawRecorddata_tx.update_async()
-
+        await recordNote.update_async()
         await tempGraphSystem.reset()
         await page.update_async()
         
