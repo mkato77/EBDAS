@@ -20,8 +20,8 @@ class MyRequestHandler(BaseHTTPRequestHandler):
                     print(response)
                     time.sleep(0.5)
                     count += 1
-                    if count > 10:
-                        time.sleep(10)
+                    # if count > 10:
+                    #     time.sleep(10)
         except ConnectionAbortedError:
             print("Connection closed.")
 
