@@ -1657,7 +1657,7 @@ async def main(page: Page):
     
     # a0, a1, a2, a3それぞれについて、測定場所をドロップダウンから選択できるようにする。選択内容はclient strageに保存する。選択肢：上部、下部、側面、上角、下角、気体充填口、外部、その他
     sensorLocationSelectOptions = ["上部", "下部", "側面", "上側面", "下側面", "上角", "下角", "気体充填口", "外部", "その他", "None"]
-    recordLocationSelectOptions = ["生物実験室", "体育館", "公民館", "一般教室", "会議室", "つくばカピオ", "ホテル部屋", "その他（屋内）", "その他（屋外）"]
+    recordLocationSelectOptions = ["生物実験室", "体育館", "体育館エントランス","体育館ステージ", "公民館", "一般教室", "自宅","会議室", "つくばカピオ", "ホテル部屋", "その他（屋内）", "その他（屋外）"]
     
     async def setLocation(e):
         await page.client_storage.set_async("sensorLocation_"+e.control.label, e.control.value)
