@@ -14,8 +14,6 @@ import re
 import datetime
 import sqlite3
 
-dt_now = datetime.datetime.now()
-
 os.environ["FLET_WS_MAX_MESSAGE_SIZE"] = "16000000"
 
 async def main(page: Page):
@@ -66,7 +64,7 @@ async def main(page: Page):
     ### Page System
     ################################
     
-    page.title = "EBDAS - Ehime Baloon Data Analyze System"
+    page.title = "EBDAS - Ehime Baloon Data Analysis System"
     body=[]
     bodySide=[]
     rtTab=[]
@@ -92,7 +90,7 @@ async def main(page: Page):
     if await page.client_storage.contains_key_async("isRtRender") == True:
         rtRenderSwitch=ft.Switch(label="リアルタイム描画", on_change=rtRenderChange, value=await page.client_storage.get_async("isRtRender"))
     else:
-        rtRenderSwitch=ft.Switch(label="リアルタイム描画", on_change=rtRenderChange, value=True)
+        rtRenderSwitch=ft.Switch(label="リアルタイム描画", on_change=rtRenderChange, value=False)
 
     # ################################
     # ### autoscrollSwitch
@@ -417,6 +415,7 @@ async def main(page: Page):
                 recordStartTime=resListFloat[0]
                 recordRawData+="time[sec], temperature[degC], pressure[hPa], humidity[%], altitude[m], a0, a1, a2, a3\n"
                 recordBaloonName=baloonSelecter.value
+                dt_now = datetime.datetime.now()
                 recordDateTime=copy.deepcopy(dt_now.strftime('%Y-%m-%d_%H-%M-%S'))
             recordDataStatus = True
             recordList=copy.deepcopy(resList)
@@ -1352,6 +1351,35 @@ async def main(page: Page):
             return()
         weightInput.border_color=None
         await weightInput.update_async()
+
+        if actualTemp.value==None or actualTemp.value=="":
+            await openSnackbar("実際の気温が未入力です。")
+            # weightInput の border_color を red にする
+            actualTemp.border_color="red"
+            await actualTemp.update_async()
+            await actualTemp.focus_async()
+            return()
+        actualTemp.border_color=None
+        await actualTemp.update_async()
+        if actualHumidity.value==None or actualHumidity.value=="":
+            await openSnackbar("実際の湿度が未入力です。")
+            # weightInput の border_color を red にする
+            actualHumidity.border_color="red"
+            await actualHumidity.update_async()
+            await actualHumidity.focus_async()
+            return()
+        actualHumidity.border_color=None
+        await actualHumidity.update_async()
+        if actualAirTime.value==None or actualAirTime.value=="":
+            await openSnackbar("実際の湿度が未入力です。")
+            # weightInput の border_color を red にする
+            actualAirTime.border_color="red"
+            await actualAirTime.update_async()
+            await actualAirTime.focus_async()
+            return()
+        actualAirTime.border_color=None
+        await actualAirTime.update_async()
+
         fName="EBDAS_"+recordDateTime+"_"+baloonSelecter.value+".csv"
         fDir=await page.client_storage.get_async("directory_path")+"/"+baloonSelecter.value
         airTime="{:.3f}".format(float(recordTime)-float(takeoffTime))
@@ -1362,7 +1390,26 @@ async def main(page: Page):
             conn = sqlite3.connect(dbname)
             cur = conn.cursor()
             takeoffIndex = r_time_str.index("0.00")
-            cur.execute(f'INSERT INTO data(baloon, weight, datetime, recordTime, chargeTime, airTime, temperature_ave, pressure_init, humidity_init, altitude_max, a_ave_init, a0_max, a1_max, a2_max, a3_max, rawdata, recordLocation, a0_location, a1_location, a2_location, a3_location, recordNote) values("{baloonSelecter.value}", {weightInput.value}, "{recordDateTime}", {recordTime}, {takeoffTime}, {airTime}, {"{:.2f}".format(sum(r_temp)/len(r_temp))}, {"{:.1f}".format(r_pressure[takeoffIndex])}, {"{:.1f}".format(r_humidity[takeoffIndex])}, {"{:.1f}".format(max(r_altitude[takeoffIndex:]))}, {"{:.2f}".format(sum([r_a0[takeoffIndex]+r_a1[takeoffIndex]+r_a2[takeoffIndex]+r_a3[takeoffIndex]])/4)}, {"{:.1f}".format(max(r_a0[takeoffIndex:]))}, {"{:.1f}".format(max(r_a1[takeoffIndex:]))}, {"{:.1f}".format(max(r_a2[takeoffIndex:]))}, {"{:.1f}".format(max(r_a3[takeoffIndex:]))}, "{recordRawData}", "{recordLocation.value}", "{sensorLocationA0.value}", "{sensorLocationA1.value}", "{sensorLocationA2.value}", "{sensorLocationA3.value}", "{recordNote.value}")')
+            
+            if actualAirTime.value !=None and actualAirTime.value!="" :
+                acAirTime = actualAirTime.value
+            else: 
+                acAirTime = "NULL"
+                
+            if actualTemp.value !=None and actualTemp.value!="" :
+                acTemp = actualTemp.value
+            else: 
+                acTemp = "NULL"
+            
+            if actualHumidity.value !=None and actualHumidity.value!="" :
+                acHumidity = actualHumidity.value
+            else: 
+                acHumidity = "NULL"
+            
+            if recordNote == "" or recordNote == None:
+                cur.execute(f'INSERT INTO data(baloon, weight, datetime, recordTime, chargeTime, airTime, temperature_ave, pressure_init, humidity_init, altitude_max, a_ave_init, a0_max, a1_max, a2_max, a3_max, rawdata, recordLocation, a0_location, a1_location, a2_location, a3_location, actualAirTime) values("{baloonSelecter.value}", {weightInput.value}, "{recordDateTime}", {recordTime}, {takeoffTime}, {airTime}, {acTemp}, {"{:.1f}".format(r_pressure[takeoffIndex])}, {acHumidity}, {"{:.1f}".format(max(r_altitude[takeoffIndex:]))}, {"{:.2f}".format(sum([r_a0[takeoffIndex]+r_a1[takeoffIndex]+r_a2[takeoffIndex]+r_a3[takeoffIndex]])/4)}, {"{:.1f}".format(max(r_a0[takeoffIndex:]))}, {"{:.1f}".format(max(r_a1[takeoffIndex:]))}, {"{:.1f}".format(max(r_a2[takeoffIndex:]))}, {"{:.1f}".format(max(r_a3[takeoffIndex:]))}, "{recordRawData}", "{recordLocation.value}", "{sensorLocationA0.value}", "{sensorLocationA1.value}", "{sensorLocationA2.value}", "{sensorLocationA3.value}", {acAirTime})')
+            else:
+                cur.execute(f'INSERT INTO data(baloon, weight, datetime, recordTime, chargeTime, airTime, temperature_ave, pressure_init, humidity_init, altitude_max, a_ave_init, a0_max, a1_max, a2_max, a3_max, rawdata, recordLocation, a0_location, a1_location, a2_location, a3_location, recordNote, actualAirTime) values("{baloonSelecter.value}", {weightInput.value}, "{recordDateTime}", {recordTime}, {takeoffTime}, {airTime}, {acTemp}, {"{:.1f}".format(r_pressure[takeoffIndex])}, {acHumidity}, {"{:.1f}".format(max(r_altitude[takeoffIndex:]))}, {"{:.2f}".format(sum([r_a0[takeoffIndex]+r_a1[takeoffIndex]+r_a2[takeoffIndex]+r_a3[takeoffIndex]])/4)}, {"{:.1f}".format(max(r_a0[takeoffIndex:]))}, {"{:.1f}".format(max(r_a1[takeoffIndex:]))}, {"{:.1f}".format(max(r_a2[takeoffIndex:]))}, {"{:.1f}".format(max(r_a3[takeoffIndex:]))}, "{recordRawData}", "{recordLocation.value}", "{sensorLocationA0.value}", "{sensorLocationA1.value}", "{sensorLocationA2.value}", "{sensorLocationA3.value}", "{recordNote.value}", "{acAirTime}")')
             conn.commit()
             cur.close()
             conn.close()
@@ -1387,8 +1434,7 @@ async def main(page: Page):
             await recordDeleteTitle.update_async()
             await recordDeleteText.update_async()
             await recordDeleteIcon.update_async()
-            
-        
+
     recordSaveTitle = ft.Text(value="保存", size=20)
     recordSaveText = ft.Text(value="保存対象?")
     recordSaveIcon = ft.Icon(name=ft.icons.SAVE)
@@ -1720,8 +1766,11 @@ async def main(page: Page):
     body.append(rtBottomMenu2)
     
     # 記録メモText Fieldを追加
-    recordNote=ft.TextField(label="記録メモ", multiline=True,min_lines=2,max_lines=2, value=await page.client_storage.get_async("recordNote"))
-    body.append(recordNote)
+    recordNote=ft.TextField(label="記録メモ", multiline=True,min_lines=2,max_lines=2, value=await page.client_storage.get_async("recordNote"), width=550)
+    actualTemp=ft.TextField(label="気温", width=100, suffix_text="℃")
+    actualHumidity=ft.TextField(label="湿度", width=100, suffix_text="%")
+    actualAirTime=ft.TextField(label="実際滞空時間", width=100, suffix_text="sec")
+    body.append(ft.Row([recordNote,actualTemp, actualHumidity,actualAirTime], spacing=5))
     
     # weightForm=ft.Row(
     #     spacing=5,
@@ -1808,8 +1857,8 @@ async def main(page: Page):
 
     
 
-    # body.append(ft.Row([rtAutoScSwitch, ft.Text("動作が重くなります! 記録は滞空中のみしてください。")], spacing=12))
-    body.append(ft.Row([ft.Text("記録は滞空中のみしてください。正確な記録のために、接続前にリアルタイム描画をオフにしてください。")], spacing=12))
+    # body.append(ft.Row([rtAutoScSwitch, ft.Text("動作が重くなります! 記録は充填＋滞空中のみしてください。")], spacing=12))
+    body.append(ft.Row([ft.Text("記録は充填＋滞空中のみしてください。正確な記録のために、接続前にリアルタイム描画をオフにしてください。")], spacing=12))
 
 
     await page.add_async(menubaritem)
@@ -1948,11 +1997,6 @@ async def main(page: Page):
             #         expand=1
             #         # expand=2,
             #     ),
-            # ),
-            # ft.Tab(
-            #     text="計算機",
-            #     icon=ft.icons.CALCULATE_ROUNDED,
-            #     content=ft.Text("この機能はまだ実装されていません。"),
             # ),
             # ft.Tab(
             #     text="チェックリスト",
