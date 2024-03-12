@@ -5,7 +5,6 @@ import asyncio
 import numpy as np
 import matplotlib.pyplot as plt
 import requests
-import time
 import pyperclip
 from tempgraph import tempGraph
 from stopwatch import StopwatchApp
@@ -91,24 +90,6 @@ async def main(page: Page):
         rtRenderSwitch=ft.Switch(label="リアルタイム描画", on_change=rtRenderChange, value=await page.client_storage.get_async("isRtRender"))
     else:
         rtRenderSwitch=ft.Switch(label="リアルタイム描画", on_change=rtRenderChange, value=False)
-
-    # ################################
-    # ### autoscrollSwitch
-    # ################################
-
-    # async def rtAutoScChange(e):
-    #     if rtAutoScSwitch.value:
-    #         lv.auto_scroll=False
-    #         await page.client_storage.set_async("isAutoSc", False)
-    #     else:
-    #         lv.auto_scroll=True
-    #         await page.client_storage.set_async("isAutoSc", True)
-    #     await lv.update_async()
-
-    # if await page.client_storage.contains_key_async("isAutoSc") == True:
-    #     rtAutoScSwitch=ft.Switch(label="自動スクロール", on_change=rtAutoScChange, value=await page.client_storage.get_async("isAutoSc"))
-    # else:
-    #     rtAutoScSwitch=ft.Switch(label="自動スクロール", on_change=rtRenderChange, value=False)
 
     ################################
     ### Snackbar
@@ -371,10 +352,7 @@ async def main(page: Page):
     
     realtimeRecordTable=ft.DataTable(
         heading_row_height=0,
-        # border=ft.border.all(2, "red"),
         show_bottom_border=True,
-        #columns 里必须添加 DataColumn 类型的控件
-        #data_row_max_height=33,
         horizontal_margin=0,
         columns=[
                 ft.DataColumn(ft.Text("時間[sec]"), numeric=True),
@@ -387,8 +365,6 @@ async def main(page: Page):
                 ft.DataColumn(ft.Text("a2[℃]"), numeric=True),
                 ft.DataColumn(ft.Text("a3[℃]"), numeric=True),
             ],
-        #rows 里必须添加 DataRow 类型的控件
-        #DataRow 
         )
     async def addRealtimeData(resList, resListFloat):
         global rawResponseData
@@ -550,9 +526,6 @@ async def main(page: Page):
 
     async def event_listener(response):
         global rawResponseData
-        # Your existing implementation for handling server response
-        # This function is already prepared, so no need to implement it here
-
         if response.startswith('time'):
             await openSnackbar("遠隔データ測定キットに接続しました。データを受信しています。")
             rawResponseData+=response[:85]+"\n"
@@ -581,19 +554,7 @@ async def main(page: Page):
             else:
                 await addRecordData(resList, resListFloat)
                 await addRealtimeData(resList, resListFloat)
-                #print(resList)
-                #resList
-                #print(f"Received response: {response}")
 
-    # setuzokuStatusView=ft.SubmenuButton(
-    #             content=ft.Image(
-    #                                     src=f"connecting.gif",
-    #                                     # width=100,
-    #                                     height=40,
-    #                                     fit=ft.ImageFit.FIT_HEIGHT,
-    #                                 ),
-    #             visible=False
-    #         )
     async def connectPC(e):
         global server_url, dir_path
         howtoRecordGuide.visible=False
@@ -780,55 +741,12 @@ async def main(page: Page):
             while self.seconds and self.running:
                 # mins, secs = divmod(self.seconds, 60)
                 self.countdown.value = "{:.1f}".format(self.seconds)
-                await button_clicked( "{:.1f}".format(self.seconds))
                 self.seconds -= 0.5
                 await self.update_async()
                 await asyncio.sleep(0.5)
         def build(self):
             self.countdown = ft.Text()
             return self.countdown
-        
-    # class Countup(ft.UserControl):
-    #     def __init__(self, seconds):
-    #         super().__init__()
-    #         self.seconds = seconds
-
-    #     async def reset(self, seconds):
-    #         self.seconds = seconds
-
-    #     async def did_mount_async(self):
-    #         self.running = False
-    #         asyncio.create_task(self.update_timer())
-    #         mins, secs = divmod(self.seconds, 60)
-    #         self.countup.value = "{:02d}:{:02d}".format(mins, secs)
-    #         await self.update_async()
-                    
-    #     async def start(self):
-    #         self.running = True
-    #         asyncio.create_task(self.update_timer())
-
-    #     async def will_unmount_async(self):
-    #         self.running = False
-            
-
-    #     async def stop(self):
-    #         self.running = False
-
-    #     async def update_timer(self):
-    #         while self.running:
-    #             mins, secs = divmod(self.seconds, 60)
-    #             self.countup.value = "{:02d}:{:02d}".format(mins, secs)
-    #             self.seconds += 1
-    #             await self.update_async()
-    #             await asyncio.sleep(1)
-
-    #     def build(self):
-    #         self.countup = ft.Text()
-    #         return self.countup
-
-
-
-    # print("Initial route:", page.route)
 
     async def open_settings(e):
         page.dialog = dlg_modal
@@ -1289,22 +1207,9 @@ async def main(page: Page):
     
     menubaritem = ft.Row([menubar])
     
-
-    # rtNowData0=ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
-    # rtNowData1=ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
-    # rtNowData2=ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
-    # rtNowData3=ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
-    # rtNowData4=ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
-    # rtNowData5=ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
-    # rtNowData6=ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
-    # rtNowData7=ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
-    # rtNowData8=ft.Text("-", selectable=True, max_lines=1, no_wrap=True, weight=ft.FontWeight.BOLD, size=18)
-
     table_column=ft.DataTable(
-        # border=ft.border.all(2, "red"),
         show_bottom_border=True,
         horizontal_margin=0, 
-        #columns 里必须添加 DataColumn 类型的控件
         columns=[
             ft.DataColumn(ft.Text("時間[sec]"), numeric=True),
             ft.DataColumn(ft.Text("外気温度[℃]"), numeric=True),
@@ -1701,7 +1606,7 @@ async def main(page: Page):
     )
     body.append(rtBottomMenu)
     
-    # a0, a1, a2, a3それぞれについて、測定場所をドロップダウンから選択できるようにする。選択内容はclient strageに保存する。選択肢：上部、下部、側面、上角、下角、気体充填口、外部、その他
+    # a0, a1, a2, a3それぞれについて、測定場所をドロップダウンから選択できるようにする。選択内容はclient strageに保存する。
     sensorLocationSelectOptions = ["上部", "下部", "側面", "上側面", "下側面", "上角", "下角", "気体充填口", "外部", "その他", "None"]
     recordLocationSelectOptions = ["生物実験室", "体育館", "体育館エントランス","体育館ステージ", "公民館", "一般教室", "自宅","会議室", "つくばカピオ", "ホテル部屋", "その他（屋内）", "その他（屋外）"]
     
@@ -1771,29 +1676,13 @@ async def main(page: Page):
     actualHumidity=ft.TextField(label="湿度", width=100, suffix_text="%")
     actualAirTime=ft.TextField(label="実際滞空時間", width=100, suffix_text="sec")
     body.append(ft.Row([recordNote,actualTemp, actualHumidity,actualAirTime], spacing=5))
-    
-    # weightForm=ft.Row(
-    #     spacing=5,
-    #     alignment=ft.alignment.center,
-    #     controls=[
-    #         ft.IconButton(
-    #             icon=ft.icons.SCALE,
-    #             disabled=True,
-    #         ),
-    #         weightInput,
-    #         weightInputSlider
-    #     ],
-    # )
-    # body.append(weightForm)
 
     lv0.controls.append(table_column)
     body.append(lv0)
     
     realtimeTable=ft.DataTable(
-        # border=ft.border.all(2, "red"),
         show_bottom_border=True,
         horizontal_margin=0, 
-        #columns 里必须添加 DataColumn 类型的控件
         columns=[
             ft.DataColumn(ft.Text("時間[sec]"), numeric=True),
             ft.DataColumn(ft.Text("外気温度[℃]"), numeric=True),
@@ -1834,32 +1723,8 @@ async def main(page: Page):
     rawRecorddata_tx=ft.TextField(hint_text="Record data", border=ft.InputBorder.NONE, filled=True, multiline=True,min_lines=9,max_lines=9,  read_only=True, value="")
     body.append(rawRecorddata_tx)
     # await page.add_async(ft.Column(spacing=0, controls=[lv0, lv]))
-    async def button_clicked(time):
-        
-        
-        b=ft.DataRow(
-                cells=[
-                    ft.DataCell(ft.Text(time, selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("28.2", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("993.4", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("39.8", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("167.0", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("23.5", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
-                    ft.DataCell(ft.Text("23.4", selectable=True, max_lines=1, no_wrap=True)),
-                    ])
 
-        # table.rows.append(b) kx
-        await page.update_async()
-        print("按钮被点击")
-        
-
-    
-
-    # body.append(ft.Row([rtAutoScSwitch, ft.Text("動作が重くなります! 記録は充填＋滞空中のみしてください。")], spacing=12))
     body.append(ft.Row([ft.Text("記録は充填＋滞空中のみしてください。正確な記録のために、接続前にリアルタイム描画をオフにしてください。")], spacing=12))
-
 
     await page.add_async(menubaritem)
 
@@ -1878,7 +1743,6 @@ async def main(page: Page):
     bodySide.append(tempGraphSystem)
     rtTabSide.append(realtimeGraphSystem)
     
-
     ###################
     ## Divider System
     ###################
@@ -1987,22 +1851,6 @@ async def main(page: Page):
                 icon=ft.icons.EDIT_NOTE_ROUNDED,
                 content=Tab1
             ),
-            # ft.Tab(
-            #     text="グラフ",
-            #     icon=ft.icons.CALCULATE_ROUNDED,
-            #     content=ft.Container(
-            #         content=ft.Row(bodySide, scroll="AUTO"),
-            #         alignment=ft.alignment.center,
-            #         image_fit="CONTAIN",
-            #         expand=1
-            #         # expand=2,
-            #     ),
-            # ),
-            # ft.Tab(
-            #     text="チェックリスト",
-            #     icon=ft.icons.CHECK_BOX_ROUNDED,
-            #     content=ft.Text("この機能はまだ実装されていません。"),
-            # ),
             ft.Tab(
                 text="生データ",
                 icon=ft.icons.TEXT_FIELDS_ROUNDED,
