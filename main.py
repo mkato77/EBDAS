@@ -345,9 +345,7 @@ async def main(page: Page):
                 ft.DataColumn(ft.Text("a1[℃]"), numeric=True),
                 ft.DataColumn(ft.Text("a2[℃]"), numeric=True),
                 ft.DataColumn(ft.Text("a3[℃]"), numeric=True),
-            ],
-        #rows 里必须添加 DataRow 类型的控件
-        #DataRow 
+            ], 
         )
     
     realtimeRecordTable=ft.DataTable(
